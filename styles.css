@@ -1,4 +1,6 @@
-/* Reset and base styles */
+/* Classic Academic CV Styling */
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+
 * {
     margin: 0;
     padding: 0;
@@ -6,124 +8,200 @@
 }
 
 body {
-    font-family: 'Georgia', serif;
-    line-height: 1.6;
-    color: #333;
-    background-color: #f9f9f9;
-    padding: 20px;
-}
-
-.container {
-    max-width: 800px;
+    font-family: 'EB Garamond', serif;
+    font-size: 12pt;
+    line-height: 1.4;
+    color: #2c2c2c;
+    background-color: #ffffff;
+    max-width: 8.5in;
     margin: 0 auto;
-    background: white;
-    padding: 40px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 0.75in;
 }
 
-header {
+.cv-container {
+    width: 100%;
+}
+
+/* Header Styling */
+.cv-header {
     text-align: center;
-    margin-bottom: 40px;
-    border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 20px;
+    margin-bottom: 1.5em;
+    border-bottom: 2px solid #2c2c2c;
+    padding-bottom: 1em;
 }
 
-h1 {
-    font-size: 2.5rem;
-    color: #2c3e50;
-    font-weight: 300;
+.cv-header h1 {
+    font-size: 24pt;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.3em;
+    text-transform: uppercase;
 }
 
-.category-section {
-    margin-bottom: 40px;
+.contact-info {
+    font-size: 11pt;
+    color: #555;
 }
 
-.category-title {
-    font-size: 1.8rem;
-    color: #34495e;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #bdc3c7;
-    text-transform: capitalize;
+.contact-info p {
+    margin: 0.2em 0;
 }
 
-.year-group {
-    margin-bottom: 25px;
-}
-
-.year-title {
-    font-size: 1.2rem;
-    color: #7f8c8d;
-    margin-bottom: 10px;
-    font-weight: bold;
-}
-
-.cv-item {
-    margin-bottom: 15px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 4px;
-    border-left: 4px solid #3498db;
-}
-
-.cv-item h3 {
-    font-size: 1.1rem;
-    margin-bottom: 5px;
-    color: #2c3e50;
-}
-
-.cv-item p {
-    margin-bottom: 5px;
-    color: #5d6d7e;
-}
-
-.cv-item .meta {
-    font-size: 0.9rem;
-    color: #95a5a6;
-    font-style: italic;
-}
-
-.external-link {
-    color: #3498db;
+.portfolio-link {
+    color: #2c2c2c;
     text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: bold;
 }
 
-.external-link:hover {
+.portfolio-link:hover {
     text-decoration: underline;
 }
 
+/* Main Content */
+.cv-main {
+    margin-top: 1em;
+}
+
+/* Category Sections */
+.category-section {
+    margin-bottom: 2em;
+    page-break-inside: avoid;
+}
+
+.category-title {
+    font-size: 14pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.8em;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid #2c2c2c;
+}
+
+/* Year Groups */
+.year-group {
+    margin-bottom: 1.2em;
+}
+
+.year-title {
+    font-size: 12pt;
+    font-weight: 500;
+    margin-bottom: 0.5em;
+    color: #444;
+}
+
+/* CV Items */
+.cv-item {
+    margin-bottom: 0.8em;
+    margin-left: 1em;
+    page-break-inside: avoid;
+}
+
+.cv-item h3 {
+    font-size: 12pt;
+    font-weight: 500;
+    margin-bottom: 0.2em;
+    line-height: 1.3;
+}
+
+.cv-item h3 a {
+    color: #2c2c2c;
+    text-decoration: none;
+}
+
+.cv-item h3 a:hover {
+    text-decoration: underline;
+}
+
+.cv-item p {
+    font-size: 11pt;
+    margin-bottom: 0.3em;
+    line-height: 1.3;
+}
+
+.cv-item .meta {
+    font-style: italic;
+    color: #666;
+    font-size: 10.5pt;
+}
+
+/* Loading and Error States */
 .loading {
     text-align: center;
-    padding: 40px;
-    font-size: 1.2rem;
-    color: #7f8c8d;
+    font-style: italic;
+    color: #666;
+    padding: 2em;
+    font-size: 11pt;
 }
 
 .error {
     text-align: center;
-    padding: 40px;
-    font-size: 1.1rem;
-    color: #e74c3c;
-    background: #fdf2f2;
-    border: 1px solid #fecaca;
-    border-radius: 4px;
+    color: #8b0000;
+    padding: 2em;
+    font-size: 11pt;
+    border: 1px solid #d3d3d3;
+    background-color: #fafafa;
 }
 
-/* Responsive design */
-@media (max-width: 600px) {
-    .container {
-        padding: 20px;
-        margin: 10px;
+/* Print Styles for PDF Generation */
+@media print {
+    body {
+        padding: 0.5in;
+        font-size: 11pt;
+        max-width: none;
+        margin: 0;
     }
     
-    h1 {
-        font-size: 2rem;
+    .cv-header {
+        margin-bottom: 1em;
+    }
+    
+    .cv-header h1 {
+        font-size: 20pt;
+    }
+    
+    .category-section {
+        margin-bottom: 1.5em;
     }
     
     .category-title {
-        font-size: 1.5rem;
+        font-size: 13pt;
+    }
+    
+    .cv-item {
+        margin-bottom: 0.6em;
+    }
+    
+    .loading, .error {
+        display: none;
+    }
+    
+    a {
+        color: #2c2c2c !important;
+        text-decoration: none !important;
+    }
+    
+    /* Ensure proper page breaks */
+    .category-section {
+        page-break-inside: avoid;
+    }
+    
+    .cv-item {
+        page-break-inside: avoid;
+    }
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+    body {
+        padding: 1em;
+        max-width: 100%;
+    }
+    
+    .cv-header h1 {
+        font-size: 20pt;
+    }
+    
+    .category-title {
+        font-size: 13pt;
     }
 }
