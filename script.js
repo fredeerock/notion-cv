@@ -71,7 +71,8 @@ class NotionCV {
                 description: this.extractText(properties.Description),
                 institution: this.extractText(properties.Institution),
                 location: this.extractText(properties.Location),
-                url: this.extractUrl(properties.URL)
+                url: this.extractUrl(properties.URL),
+                icon: this.extractIcon(item)
             };
         }).filter(item => item.title); // Filter out items without titles
     }
@@ -101,9 +102,14 @@ class NotionCV {
     extractDateYear(property) {
         if (!property) return null;
         
-        if (property.type === 'date' && property.date && property.date.start) {
-            const year = new Date(property.date.start).getFullYear();
-            return isNaN(year) ? null : year;
+        if (property.type === 'date' && property.date) {
+            // If there's an end date, use that; otherwise use start date
+            const dateToUse = property.date.end || property.date.start;
+            
+            if (dateToUse) {
+                const year = new Date(dateToUse).getFullYear();
+                return isNaN(year) ? null : year;
+            }
         }
         
         return null;
@@ -112,6 +118,21 @@ class NotionCV {
     extractUrl(property) {
         if (!property || property.type !== 'url') return '';
         return property.url || '';
+    }
+
+    extractIcon(item) {
+        if (!item.icon) return '';
+        
+        if (item.icon.type === 'emoji') {
+            return item.icon.emoji;
+        }
+        
+        // Could also handle file icons if needed
+        // if (item.icon.type === 'file') {
+        //     return item.icon.file.url;
+        // }
+        
+        return '';
     }
 
     getCategoryClass(category) {
@@ -143,17 +164,20 @@ class NotionCV {
         
         this.cvData.forEach(item => {
             const category = item.category || 'Other';
-            const year = item.year || 'Unknown';
+            const year = item.year; // Don't default to 'Unknown'
             
             if (!organized[category]) {
                 organized[category] = {};
             }
             
-            if (!organized[category][year]) {
-                organized[category][year] = [];
+            // Use 'no-date' as internal key for items without dates
+            const yearKey = year || 'no-date';
+            
+            if (!organized[category][yearKey]) {
+                organized[category][yearKey] = [];
             }
             
-            organized[category][year].push(item);
+            organized[category][yearKey].push(item);
         });
 
         return organized;
@@ -179,17 +203,21 @@ class NotionCV {
             const categoryClass = this.getCategoryClass(category);
             html += `<h2 class="category-title ${categoryClass}">${category}</h2>`;
             
-            // Sort years within each category (descending)
+            // Sort years within each category (descending, with no-date items first)
             const sortedYears = Object.keys(organizedData[category]).sort((a, b) => {
-                if (a === 'Unknown') return 1;
-                if (b === 'Unknown') return -1;
+                if (a === 'no-date') return -1; // Put no-date items at the top
+                if (b === 'no-date') return 1;
                 return parseInt(b) - parseInt(a);
             });
             
             sortedYears.forEach(year => {
                 if (organizedData[category][year].length > 0) {
                     html += `<div class="year-group">`;
-                    html += `<h3 class="year-title">${year}</h3>`;
+                    
+                    // Only show year title if there's an actual year
+                    if (year !== 'no-date') {
+                        html += `<h3 class="year-title">${year}</h3>`;
+                    }
                     
                     organizedData[category][year].forEach(item => {
                         html += this.renderItem(item);
@@ -210,7 +238,10 @@ class NotionCV {
         
         // Generate Notion public page URL
         const notionPageUrl = this.generateNotionPageUrl(item.id);
-        html += `<h3><a href="${notionPageUrl}" target="_blank">${item.title}</a></h3>`;
+        
+        // Combine icon and title
+        const displayTitle = item.icon ? `${item.icon} ${item.title}` : item.title;
+        html += `<h3><a href="${notionPageUrl}" target="_blank">${displayTitle}</a></h3>`;
         
         if (item.description) {
             html += `<p>${item.description}</p>`;
