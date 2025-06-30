@@ -1,5 +1,7 @@
 // Notion API configuration
-const NOTION_TOKEN = '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';
+// For local development: token will be injected by build process
+// For GitHub Pages: token will be injected by GitHub Actions
+const NOTION_TOKEN = window.NOTION_TOKEN || 'TOKEN_WILL_BE_INJECTED';
 const DATABASE_ID = '14fcf2908c698021aa5ee3656ab26d16';
 
 class NotionCV {
