@@ -114,6 +114,30 @@ class NotionCV {
         return property.url || '';
     }
 
+    getCategoryClass(category) {
+        // Detect category hierarchy based on numbering pattern
+        const numberPattern = /^(\d+\.)+/;
+        const match = category.match(numberPattern);
+        
+        if (!match) return ''; // No numbering, treat as main category
+        
+        const numbering = match[0];
+        const dots = (numbering.match(/\./g) || []).length;
+        
+        if (dots === 1) {
+            // 1.2, 1.3 - Main categories
+            return '';
+        } else if (dots === 2) {
+            // 1.2.1, 1.3.1 - Subcategories
+            return 'subcategory';
+        } else if (dots >= 3) {
+            // 1.3.1.1 and deeper - Sub-subcategories
+            return 'sub-subcategory';
+        }
+        
+        return '';
+    }
+
     organizeData() {
         const organized = {};
         
@@ -150,7 +174,10 @@ class NotionCV {
         
         sortedCategories.forEach(category => {
             html += `<div class="category-section">`;
-            html += `<h2 class="category-title">${category}</h2>`;
+            
+            // Determine category level based on numbering pattern
+            const categoryClass = this.getCategoryClass(category);
+            html += `<h2 class="category-title ${categoryClass}">${category}</h2>`;
             
             // Sort years within each category (descending)
             const sortedYears = Object.keys(organizedData[category]).sort((a, b) => {
