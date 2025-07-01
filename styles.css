@@ -93,6 +93,23 @@ body {
     text-decoration: underline;
 }
 
+/* Instructions */
+.instructions {
+    text-align: center;
+    margin: 1.2em 0;
+    padding: 0.8em;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    font-size: 10.5pt;
+    color: #555;
+    line-height: 1.4;
+}
+
+.instructions p {
+    margin: 0;
+}
+
 /* Controls */
 .controls {
     text-align: center;
@@ -506,7 +523,8 @@ body {
         background-color: inherit !important;
     }
     
-    /* Hide toggle button in print */
+    /* Hide instructions and toggle button in print */
+    .instructions,
     .controls {
         display: none !important;
     }
