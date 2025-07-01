@@ -73,10 +73,133 @@ function extractIcon(item) {
 }
 
 async function checkContent(pageId) {
-  return new Promise((resolve) => {
+  try {
     const options = {
       hostname: 'api.notion.com',
       path: `/v1/blocks/${pageId}/children`,
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${NOTION_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Notion-Version': '2022-06-28'
+      }
+    };
+    
+    const response = await new Promise((resolve, reject) => {
+      const req = https.request(options, (res) => {
+        let body = '';
+        res.on('data', (chunk) => body += chunk);
+        res.on('end', () => {
+          try {
+            const content = JSON.parse(body);
+            resolve(content);
+          } catch (e) {
+            reject(e);
+          }
+        });
+      });
+      
+      req.on('error', reject);
+      req.end();
+    });
+    
+    if (!response.results || response.results.length === 0) {
+      return { hasContent: false, content: '' };
+    }
+    
+    // Extract text content from blocks
+    const contentText = response.results.map(block => {
+      if (block.type === 'paragraph' && block.paragraph?.rich_text?.length > 0) {
+        return block.paragraph.rich_text.map(text => text.plain_text).join('');
+      }
+      if (block.type === 'heading_1' && block.heading_1?.rich_text?.length > 0) {
+        return '# ' + block.heading_1.rich_text.map(text => text.plain_text).join('');
+      }
+      if (block.type === 'heading_2' && block.heading_2?.rich_text?.length > 0) {
+        return '## ' + block.heading_2.rich_text.map(text => text.plain_text).join('');
+      }
+      if (block.type === 'heading_3' && block.heading_3?.rich_text?.length > 0) {
+        return '### ' + block.heading_3.rich_text.map(text => text.plain_text).join('');
+      }
+      if (block.type === 'bulleted_list_item' && block.bulleted_list_item?.rich_text?.length > 0) {
+        return '• ' + block.bulleted_list_item.rich_text.map(text => text.plain_text).join('');
+      }
+      if (block.type === 'numbered_list_item' && block.numbered_list_item?.rich_text?.length > 0) {
+        return '1. ' + block.numbered_list_item.rich_text.map(text => text.plain_text).join('');
+      }
+      if (block.type === 'image') {
+        // Handle different image sources
+        let imageUrl = '';
+        let caption = '';
+        
+        if (block.image.type === 'file' && block.image.file?.url) {
+          imageUrl = block.image.file.url;
+        } else if (block.image.type === 'external' && block.image.external?.url) {
+          imageUrl = block.image.external.url;
+        }
+        
+        if (block.image.caption && block.image.caption.length > 0) {
+          caption = block.image.caption.map(text => text.plain_text).join('');
+        }
+        
+        if (imageUrl) {
+          return `[IMAGE:${imageUrl}${caption ? ':' + caption : ''}]`;
+        }
+      }
+      if (block.type === 'video') {
+        // Handle video blocks similarly
+        let videoUrl = '';
+        let caption = '';
+        
+        if (block.video.type === 'file' && block.video.file?.url) {
+          videoUrl = block.video.file.url;
+        } else if (block.video.type === 'external' && block.video.external?.url) {
+          videoUrl = block.video.external.url;
+        }
+        
+        if (block.video.caption && block.video.caption.length > 0) {
+          caption = block.video.caption.map(text => text.plain_text).join('');
+        }
+        
+        if (videoUrl) {
+          return `[VIDEO:${videoUrl}${caption ? ':' + caption : ''}]`;
+        }
+      }
+      if (block.type === 'table') {
+        // Tables need special handling - we'll fetch their children rows
+        return `[TABLE:${block.id}]`;
+      }
+      return '';
+    }).filter(text => text.trim().length > 0);
+    
+    // Process table markers and fetch table data
+    const processedContent = [];
+    for (const item of contentText) {
+      if (item.startsWith('[TABLE:') && item.endsWith(']')) {
+        const tableId = item.substring(7, item.length - 1);
+        const tableData = await fetchTableData(tableId);
+        if (tableData) {
+          processedContent.push(`[TABLE_DATA:${tableData}]`);
+        }
+      } else {
+        processedContent.push(item);
+      }
+    }
+    
+    const hasContent = processedContent.length > 0;
+    const contentString = processedContent.join('\n\n');
+    
+    return { hasContent, content: contentString };
+  } catch (e) {
+    return { hasContent: false, content: '' };
+  }
+}
+
+async function fetchTableData(tableId) {
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'api.notion.com',
+      path: `/v1/blocks/${tableId}/children`,
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${NOTION_TOKEN}`,
@@ -93,82 +216,40 @@ async function checkContent(pageId) {
           const content = JSON.parse(body);
           
           if (!content.results || content.results.length === 0) {
-            resolve({ hasContent: false, content: '' });
+            resolve('');
             return;
           }
           
-          // Extract text content from blocks
-          const contentText = content.results.map(block => {
-            if (block.type === 'paragraph' && block.paragraph?.rich_text?.length > 0) {
-              return block.paragraph.rich_text.map(text => text.plain_text).join('');
-            }
-            if (block.type === 'heading_1' && block.heading_1?.rich_text?.length > 0) {
-              return '# ' + block.heading_1.rich_text.map(text => text.plain_text).join('');
-            }
-            if (block.type === 'heading_2' && block.heading_2?.rich_text?.length > 0) {
-              return '## ' + block.heading_2.rich_text.map(text => text.plain_text).join('');
-            }
-            if (block.type === 'heading_3' && block.heading_3?.rich_text?.length > 0) {
-              return '### ' + block.heading_3.rich_text.map(text => text.plain_text).join('');
-            }
-            if (block.type === 'bulleted_list_item' && block.bulleted_list_item?.rich_text?.length > 0) {
-              return '• ' + block.bulleted_list_item.rich_text.map(text => text.plain_text).join('');
-            }
-            if (block.type === 'numbered_list_item' && block.numbered_list_item?.rich_text?.length > 0) {
-              return '1. ' + block.numbered_list_item.rich_text.map(text => text.plain_text).join('');
-            }
-            if (block.type === 'image') {
-              // Handle different image sources
-              let imageUrl = '';
-              let caption = '';
-              
-              if (block.image.type === 'file' && block.image.file?.url) {
-                imageUrl = block.image.file.url;
-              } else if (block.image.type === 'external' && block.image.external?.url) {
-                imageUrl = block.image.external.url;
+          // Extract table rows
+          const rows = content.results
+            .filter(block => block.type === 'table_row')
+            .map(block => {
+              if (block.table_row && block.table_row.cells) {
+                return block.table_row.cells.map(cell => {
+                  return cell.map(text => text.plain_text).join('');
+                });
               }
-              
-              if (block.image.caption && block.image.caption.length > 0) {
-                caption = block.image.caption.map(text => text.plain_text).join('');
-              }
-              
-              if (imageUrl) {
-                return `[IMAGE:${imageUrl}${caption ? ':' + caption : ''}]`;
-              }
-            }
-            if (block.type === 'video') {
-              // Handle video blocks similarly
-              let videoUrl = '';
-              let caption = '';
-              
-              if (block.video.type === 'file' && block.video.file?.url) {
-                videoUrl = block.video.file.url;
-              } else if (block.video.type === 'external' && block.video.external?.url) {
-                videoUrl = block.video.external.url;
-              }
-              
-              if (block.video.caption && block.video.caption.length > 0) {
-                caption = block.video.caption.map(text => text.plain_text).join('');
-              }
-              
-              if (videoUrl) {
-                return `[VIDEO:${videoUrl}${caption ? ':' + caption : ''}]`;
-              }
-            }
-            return '';
-          }).filter(text => text.trim().length > 0);
+              return [];
+            });
           
-          const hasContent = contentText.length > 0;
-          const contentString = contentText.join('\n\n');
+          if (rows.length === 0) {
+            resolve('');
+            return;
+          }
           
-          resolve({ hasContent, content: contentString });
+          // Format as table data
+          const tableData = {
+            rows: rows
+          };
+          
+          resolve(JSON.stringify(tableData));
         } catch (e) {
-          resolve({ hasContent: false, content: '' });
+          resolve('');
         }
       });
     });
     
-    req.on('error', () => resolve({ hasContent: false, content: '' }));
+    req.on('error', () => resolve(''));
     req.end();
   });
 }

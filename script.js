@@ -218,6 +218,10 @@ class NotionCV {
                 else if (paragraph.match(/^\[VIDEO:.*\]$/)) {
                     return this.renderVideo(paragraph);
                 }
+                // Handle table data markers
+                else if (paragraph.match(/^\[TABLE_DATA:.*\]$/)) {
+                    return this.renderTable(paragraph);
+                }
                 // Regular paragraphs
                 else if (paragraph.trim()) {
                     return `<p>${paragraph}</p>`;
@@ -318,22 +322,45 @@ class NotionCV {
         return html;
     }
 
-    extractYouTubeId(url) {
-        const patterns = [
-            /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
-            /youtube\.com\/embed\/([^&\n?#]+)/
-        ];
+    renderTable(tableMarker) {
+        // Parse [TABLE_DATA:json] format
+        const match = tableMarker.match(/^\[TABLE_DATA:(.+)\]$/);
+        if (!match) return '';
         
-        for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match) return match[1];
+        try {
+            const tableData = JSON.parse(match[1]);
+            if (!tableData.rows || tableData.rows.length === 0) return '';
+            
+            let html = `<div class="table-container">`;
+            html += `<table class="notion-table">`;
+            
+            // Render table rows
+            tableData.rows.forEach((row, rowIndex) => {
+                if (rowIndex === 0) {
+                    // First row as header
+                    html += `<thead><tr>`;
+                    row.forEach(cell => {
+                        html += `<th>${cell || ''}</th>`;
+                    });
+                    html += `</tr></thead><tbody>`;
+                } else {
+                    // Regular data rows
+                    html += `<tr>`;
+                    row.forEach(cell => {
+                        html += `<td>${cell || ''}</td>`;
+                    });
+                    html += `</tr>`;
+                }
+            });
+            
+            html += `</tbody></table>`;
+            html += `</div>`;
+            
+            return html;
+        } catch (e) {
+            console.error('Error parsing table data:', e);
+            return '<div class="table-error">Error displaying table</div>';
         }
-        return null;
-    }
-
-    extractVimeoId(url) {
-        const match = url.match(/vimeo\.com\/(\d+)/);
-        return match ? match[1] : null;
     }
 
     generateNotionPageUrl(itemId) {
