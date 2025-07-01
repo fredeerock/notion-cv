@@ -30,15 +30,10 @@ body {
 }
 
 .header-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2em;
-    position: relative;
+    text-align: center;
 }
 
 .header-text {
-    flex: 1;
     text-align: center;
 }
 
@@ -59,13 +54,41 @@ body {
     margin: 0.2em 0;
 }
 
+.contact-info .title {
+    font-size: 12pt;
+    font-weight: 500;
+    color: #2c2c2c;
+    margin-bottom: 0.3em;
+    line-height: 1.3;
+}
+
+.contact-info .subtitle {
+    font-size: 11pt;
+    color: #666;
+    margin-bottom: 0.4em;
+}
+
+.contact-info .contact-details {
+    font-size: 10pt;
+    color: #666;
+}
+
+.contact-link {
+    color: #2c2c2c;
+    text-decoration: none;
+}
+
+.contact-link:hover {
+    text-decoration: underline;
+}
+
 .qr-code {
-    position: absolute;
-    right: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 80px;
+    margin-top: 1em;
+    padding-top: 1em;
+    border-top: 1px solid #e9ecef;
 }
 
 .qr-code img {
@@ -413,6 +436,18 @@ body {
         font-size: 20pt;
     }
     
+    .contact-info .title {
+        font-size: 11pt !important;
+    }
+    
+    .contact-info .subtitle {
+        font-size: 10pt !important;
+    }
+    
+    .contact-info .contact-details {
+        font-size: 9pt !important;
+    }
+    
     .category-section {
         margin-bottom: 1.5em;
     }
@@ -546,16 +581,14 @@ body {
         max-width: 100%;
     }
     
-    /* Stack header vertically on mobile */
+    /* Mobile header adjustments */
     .header-content {
-        flex-direction: column;
-        gap: 1em;
-        position: static;
+        text-align: center;
     }
     
     .qr-code {
-        position: static;
-        order: 1; /* Move QR code below text on mobile */
+        margin-top: 0.8em;
+        padding-top: 0.8em;
     }
     
     .cv-header h1 {
