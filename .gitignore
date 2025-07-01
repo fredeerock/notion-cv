@@ -8,6 +8,10 @@
 # Local development files with secrets
 local.js
 
+# Generated data files (will be created by fetch script)
+notion-data.json
+raw-notion-data.json
+
 # OS generated files
 .DS_Store
 .DS_Store?

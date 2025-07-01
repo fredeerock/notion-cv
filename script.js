@@ -1,7 +1,4 @@
-// Notion API configuration
-// For local development: token will be injected by build process
-// For GitHub Pages: token will be injected by GitHub Actions
-const NOTION_TOKEN = window.NOTION_TOKEN || 'TOKEN_WILL_BE_INJECTED';
+// Notion CV - Always uses local JSON data for fast loading
 const DATABASE_ID = '14fcf2908c698021aa5ee3656ab26d16';
 
 class NotionCV {
@@ -12,215 +9,24 @@ class NotionCV {
 
     async init() {
         try {
-            await this.fetchData();
+            await this.loadData();
             this.renderCV();
         } catch (error) {
             this.showError(error.message);
         }
     }
 
-    async fetchData() {
-        // Try to fetch pre-built data first (for GitHub Pages)
-        try {
-            const response = await fetch('./notion-data.json');
-            if (response.ok) {
-                console.log('Using pre-fetched data from notion-data.json');
-                const data = await response.json();
-                this.cvData = data;
-                return;
-            }
-        } catch (error) {
-            console.log('Pre-fetched data not available, falling back to live API');
-        }
-
-        // Fallback to live API (for local development)
-        if (!NOTION_TOKEN || NOTION_TOKEN === 'TOKEN_WILL_BE_INJECTED') {
-            throw new Error('Notion token not available. Please check your configuration.');
-        }
-
-        const response = await fetch(`https://api.notion.com/v1/databases/${DATABASE_ID}/query`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${NOTION_TOKEN}`,
-                'Content-Type': 'application/json',
-                'Notion-Version': '2022-06-28'
-            },
-            body: JSON.stringify({
-                sorts: [
-                    {
-                        property: 'Category',
-                        direction: 'ascending'
-                    },
-                    {
-                        property: 'Date',
-                        direction: 'descending'
-                    }
-                ]
-            })
-        });
-
+    async loadData() {
+        console.log('📄 Loading CV data from notion-data.json...');
+        
+        const response = await fetch('./notion-data.json');
+        
         if (!response.ok) {
-            throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
+            throw new Error(`Failed to load CV data: ${response.status} ${response.statusText}. Run 'node fetch-notion-data.js' to generate the data file.`);
         }
 
-        const data = await response.json();
-        
-        if (!data.results) {
-            throw new Error('No results found in Notion response');
-        }
-        
-        this.cvData = await this.processData(data.results);
-    }
-
-    async processData(results) {
-        if (!Array.isArray(results)) {
-            console.error('Results is not an array:', results);
-            return [];
-        }
-        
-        const processedItems = [];
-        
-        for (const item of results) {
-            const properties = item.properties;
-            
-            // Check if page has content
-            const hasContent = await this.checkPageContent(item.id);
-            
-            const processedItem = {
-                id: item.id,
-                title: this.extractText(properties.Name),
-                category: this.extractSelect(properties.Category),
-                year: this.extractDateYear(properties.Date),
-                description: this.extractText(properties.Description),
-                institution: this.extractText(properties.Institution),
-                location: this.extractText(properties.Location),
-                url: this.extractUrl(properties.URL),
-                icon: this.extractIcon(item),
-                hasContent: hasContent
-            };
-            
-            if (processedItem.title) {
-                processedItems.push(processedItem);
-            }
-        }
-        
-        return processedItems;
-    }
-
-    extractText(property) {
-        if (!property) return '';
-        
-        if (property.type === 'title' && property.title) {
-            return property.title.map(text => text.plain_text).join('');
-        }
-        if (property.type === 'rich_text' && property.rich_text) {
-            return property.rich_text.map(text => text.plain_text).join('');
-        }
-        return '';
-    }
-
-    extractSelect(property) {
-        if (!property || property.type !== 'select') return '';
-        return property.select ? property.select.name : '';
-    }
-
-    extractNumber(property) {
-        if (!property || property.type !== 'number') return null;
-        return property.number;
-    }
-
-    extractDateYear(property) {
-        if (!property) return null;
-        
-        if (property.type === 'date' && property.date) {
-            // If there's an end date, use that; otherwise use start date
-            const dateToUse = property.date.end || property.date.start;
-            
-            if (dateToUse) {
-                const year = new Date(dateToUse).getFullYear();
-                return isNaN(year) ? null : year;
-            }
-        }
-        
-        return null;
-    }
-
-    extractUrl(property) {
-        if (!property || property.type !== 'url') return '';
-        return property.url || '';
-    }
-
-    extractIcon(item) {
-        if (!item.icon) return '';
-        
-        if (item.icon.type === 'emoji') {
-            return item.icon.emoji;
-        }
-        
-        // Could also handle file icons if needed
-        // if (item.icon.type === 'file') {
-        //     return item.icon.file.url;
-        // }
-        
-        return '';
-    }
-
-    async checkPageContent(pageId) {
-        // Skip API call if token is not available (production mode)
-        if (!NOTION_TOKEN || NOTION_TOKEN === 'TOKEN_WILL_BE_INJECTED') {
-            return false; // Will be handled by pre-fetched data
-        }
-
-        try {
-            const response = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children`, {
-                headers: {
-                    'Authorization': `Bearer ${NOTION_TOKEN}`,
-                    'Content-Type': 'application/json',
-                    'Notion-Version': '2022-06-28'
-                }
-            });
-
-            if (!response.ok) {
-                return false; // If we can't fetch content, assume no content
-            }
-
-            const data = await response.json();
-            
-            // Check if there are any blocks with actual content
-            if (!data.results || data.results.length === 0) {
-                return false;
-            }
-            
-            // Check if any block has meaningful content (not just empty blocks)
-            const hasContent = data.results.some(block => {
-                // Check different block types for content
-                if (block.type === 'paragraph' && block.paragraph?.rich_text?.length > 0) {
-                    return block.paragraph.rich_text.some(text => text.plain_text.trim().length > 0);
-                }
-                if (block.type === 'heading_1' && block.heading_1?.rich_text?.length > 0) {
-                    return block.heading_1.rich_text.some(text => text.plain_text.trim().length > 0);
-                }
-                if (block.type === 'heading_2' && block.heading_2?.rich_text?.length > 0) {
-                    return block.heading_2.rich_text.some(text => text.plain_text.trim().length > 0);
-                }
-                if (block.type === 'heading_3' && block.heading_3?.rich_text?.length > 0) {
-                    return block.heading_3.rich_text.some(text => text.plain_text.trim().length > 0);
-                }
-                if (block.type === 'bulleted_list_item' && block.bulleted_list_item?.rich_text?.length > 0) {
-                    return block.bulleted_list_item.rich_text.some(text => text.plain_text.trim().length > 0);
-                }
-                if (block.type === 'numbered_list_item' && block.numbered_list_item?.rich_text?.length > 0) {
-                    return block.numbered_list_item.rich_text.some(text => text.plain_text.trim().length > 0);
-                }
-                // Add other block types as needed
-                return false;
-            });
-            
-            return hasContent;
-        } catch (error) {
-            console.warn('Error checking page content:', error);
-            return false; // If there's an error, assume no content
-        }
+        this.cvData = await response.json();
+        console.log(`✅ Loaded ${this.cvData.length} CV items`);
     }
 
     getCategoryClass(category) {

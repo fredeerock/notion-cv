@@ -22,16 +22,6 @@
         </main>
     </div>
     
-    <script>
-        // Try to load local.js only if it exists (local development)
-        const script = document.createElement('script');
-        script.src = 'local.js';
-        script.onerror = function() {
-            // local.js doesn't exist, that's fine for production
-            console.log('local.js not found - using production mode');
-        };
-        document.head.appendChild(script);
-    </script>
     <script src="script.js"></script>
 </body>
 </html> 
