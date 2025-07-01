@@ -59,9 +59,13 @@ Your Notion database should have these properties:
 ## Features
 
 - ⚡ Fast loading with pre-fetched JSON data
-- 📱 Responsive design for all devices
+- 📱 Responsive design for all devices  
 - 🎨 Clean academic CV styling
 - 🔗 Smart linking (only links to pages with content)
 - 📅 Automatic date-based organization
 - 🔄 Scheduled updates every 6 hours
 - 🖨️ Print-friendly CSS for PDF generation
+- 🖼️ **Image support**: Downloads and serves images locally
+- 📊 **Table support**: Renders Notion tables with professional styling
+- 📄 **Rich content**: Supports headings, lists, images, videos, and tables
+- 🎯 **QR code**: Automatically generated for easy sharing

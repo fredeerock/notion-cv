@@ -8,6 +8,9 @@
 # Local development files with secrets
 local.js
 
+# Downloaded images
+images/
+
 # Generated data files (will be created by fetch script)
 notion-data.json
 raw-notion-data.json

@@ -2,6 +2,8 @@
 
 const fs = require('fs');
 const https = require('https');
+const path = require('path');
+const crypto = require('crypto');
 
 // Get token from environment variable or local.js
 let NOTION_TOKEN;
@@ -172,7 +174,7 @@ async function checkContent(pageId) {
       return '';
     }).filter(text => text.trim().length > 0);
     
-    // Process table markers and fetch table data
+    // Process table markers and fetch table data, download images
     const processedContent = [];
     for (const item of contentText) {
       if (item.startsWith('[TABLE:') && item.endsWith(']')) {
@@ -180,6 +182,37 @@ async function checkContent(pageId) {
         const tableData = await fetchTableData(tableId);
         if (tableData) {
           processedContent.push(`[TABLE_DATA:${tableData}]`);
+        }
+      } else if (item.startsWith('[IMAGE:')) {
+        // Process image downloads - handle URLs with multiple colons
+        const imageMatch = item.match(/^\[IMAGE:(.+)\]$/);
+        if (imageMatch) {
+          const content = imageMatch[1];
+          
+          // Try to split by the last colon to separate URL from caption
+          let originalUrl, caption = '';
+          
+          const lastColonIndex = content.lastIndexOf(':');
+          if (lastColonIndex > 6 && !content.substring(lastColonIndex + 1).includes('/')) {
+            // If there's a colon after position 6 (to account for "https:") 
+            // and what follows doesn't contain slashes (likely not part of the URL)
+            // then treat it as a caption
+            originalUrl = content.substring(0, lastColonIndex);
+            caption = content.substring(lastColonIndex + 1);
+          } else {
+            // Otherwise, treat the whole thing as the URL
+            originalUrl = content;
+          }
+          
+          try {
+            const localPath = await downloadImage(originalUrl);
+            processedContent.push(`[IMAGE:${localPath}${caption ? ':' + caption : ''}]`);
+          } catch (error) {
+            console.warn(`   Failed to download image, using original URL: ${error.message}`);
+            processedContent.push(item); // Keep original if download fails
+          }
+        } else {
+          processedContent.push(item);
         }
       } else {
         processedContent.push(item);
@@ -192,6 +225,60 @@ async function checkContent(pageId) {
     return { hasContent, content: contentString };
   } catch (e) {
     return { hasContent: false, content: '' };
+  }
+}
+
+async function downloadImage(imageUrl) {
+  try {
+    // Create a unique filename based on the URL hash
+    const hash = crypto.createHash('md5').update(imageUrl).digest('hex');
+    
+    // Try to determine file extension from URL
+    let extension = '.png'; // default
+    const urlPath = new URL(imageUrl).pathname;
+    const match = urlPath.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+    if (match) {
+      extension = '.' + match[1].toLowerCase();
+    }
+    
+    const filename = `${hash}${extension}`;
+    const localPath = path.join('./images', filename);
+    
+    // Check if file already exists
+    if (fs.existsSync(localPath)) {
+      console.log(`   Image already exists: ${filename}`);
+      return `./images/${filename}`;
+    }
+    
+    console.log(`   Downloading image: ${filename}`);
+    
+    return new Promise((resolve, reject) => {
+      const file = fs.createWriteStream(localPath);
+      
+      https.get(imageUrl, (response) => {
+        if (response.statusCode !== 200) {
+          reject(new Error(`HTTP ${response.statusCode}`));
+          return;
+        }
+        
+        response.pipe(file);
+        
+        file.on('finish', () => {
+          file.close();
+          resolve(`./images/${filename}`);
+        });
+        
+        file.on('error', (err) => {
+          fs.unlink(localPath, () => {}); // Delete partial file
+          reject(err);
+        });
+      }).on('error', (err) => {
+        reject(err);
+      });
+    });
+  } catch (error) {
+    console.warn(`   Failed to download image: ${error.message}`);
+    return imageUrl; // Fallback to original URL
   }
 }
 
@@ -308,6 +395,13 @@ async function fetchNotionData() {
 
 async function processData() {
   try {
+    // Ensure images directory exists
+    const imagesDir = './images';
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+      console.log('📁 Created images directory');
+    }
+    
     const data = await fetchNotionData();
     console.log(`📝 Processing ${data.results?.length || 0} items...`);
     
