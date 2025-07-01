@@ -139,10 +139,21 @@ body {
 .cv-item h3 a {
     color: #2c2c2c;
     text-decoration: none;
+    position: relative;
 }
 
 .cv-item h3 a:hover {
     text-decoration: underline;
+}
+
+/* Add a subtle link indicator */
+.cv-item h3 a::after {
+    content: "↗";
+    font-size: 9pt;
+    color: #0000EE;
+    margin-left: 0.3em;
+    opacity: 0.6;
+    vertical-align: super;
 }
 
 .cv-item p {
@@ -217,6 +228,11 @@ body {
     a {
         color: #2c2c2c !important;
         text-decoration: none !important;
+    }
+    
+    /* Hide link indicators in print */
+    .cv-item h3 a::after {
+        display: none;
     }
     
     /* Ensure proper page breaks */
