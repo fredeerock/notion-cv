@@ -24,10 +24,21 @@ body {
 
 /* Header Styling */
 .cv-header {
-    text-align: center;
     margin-bottom: 1.5em;
     border-bottom: 2px solid #2c2c2c;
     padding-bottom: 1em;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2em;
+}
+
+.header-text {
+    flex: 1;
+    text-align: center;
 }
 
 .cv-header h1 {
@@ -45,6 +56,29 @@ body {
 
 .contact-info p {
     margin: 0.2em 0;
+}
+
+.qr-code {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.qr-code img {
+    width: 80px;
+    height: 80px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+}
+
+.qr-code small {
+    font-size: 8pt;
+    color: #666;
+    margin-top: 0.3em;
+    text-align: center;
+    line-height: 1.2;
 }
 
 .portfolio-link {
@@ -225,6 +259,16 @@ body {
         display: none;
     }
     
+    /* Hide QR code in print */
+    .qr-code {
+        display: none !important;
+    }
+    
+    /* Center header text when QR code is hidden */
+    .header-content {
+        justify-content: center;
+    }
+
     a {
         color: #2c2c2c !important;
         text-decoration: none !important;
@@ -250,6 +294,16 @@ body {
     body {
         padding: 1em;
         max-width: 100%;
+    }
+    
+    /* Stack header vertically on mobile */
+    .header-content {
+        flex-direction: column;
+        gap: 1em;
+    }
+    
+    .qr-code {
+        order: -1; /* Move QR code above text on mobile */
     }
     
     .cv-header h1 {

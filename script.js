@@ -1,6 +1,30 @@
 // Notion CV - Always uses local JSON data for fast loading
 const DATABASE_ID = '14fcf2908c698021aa5ee3656ab26d16';
 
+// Generate QR code for current page URL
+function generateQRCode() {
+    const currentUrl = window.location.href;
+    const qrImage = document.getElementById('qr-image');
+    
+    if (qrImage) {
+        // Using QR Server API (free, reliable service)
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(currentUrl)}`;
+        qrImage.src = qrUrl;
+        qrImage.onerror = function() {
+            // Fallback: hide QR code if service is unavailable
+            const qrContainer = document.querySelector('.qr-code');
+            if (qrContainer) {
+                qrContainer.style.display = 'none';
+                // Adjust header layout
+                const headerContent = document.querySelector('.header-content');
+                if (headerContent) {
+                    headerContent.style.justifyContent = 'center';
+                }
+            }
+        };
+    }
+}
+
 class NotionCV {
     constructor() {
         this.cvData = [];
@@ -11,6 +35,7 @@ class NotionCV {
         try {
             await this.loadData();
             this.renderCV();
+            generateQRCode(); // Generate QR code on init
         } catch (error) {
             this.showError(error.message);
         }
@@ -176,5 +201,6 @@ class NotionCV {
 
 // Initialize the CV when the page loads
 document.addEventListener('DOMContentLoaded', () => {
+    generateQRCode();
     new NotionCV();
 });
