@@ -51,19 +51,24 @@ class NotionCV {
             throw new Error('No results found in Notion response');
         }
         
-        this.cvData = this.processData(data.results);
+        this.cvData = await this.processData(data.results);
     }
 
-    processData(results) {
+    async processData(results) {
         if (!Array.isArray(results)) {
             console.error('Results is not an array:', results);
             return [];
         }
         
-        return results.map(item => {
+        const processedItems = [];
+        
+        for (const item of results) {
             const properties = item.properties;
             
-            return {
+            // Check if page has content
+            const hasContent = await this.checkPageContent(item.id);
+            
+            const processedItem = {
                 id: item.id,
                 title: this.extractText(properties.Name),
                 category: this.extractSelect(properties.Category),
@@ -72,9 +77,16 @@ class NotionCV {
                 institution: this.extractText(properties.Institution),
                 location: this.extractText(properties.Location),
                 url: this.extractUrl(properties.URL),
-                icon: this.extractIcon(item)
+                icon: this.extractIcon(item),
+                hasContent: hasContent
             };
-        }).filter(item => item.title); // Filter out items without titles
+            
+            if (processedItem.title) {
+                processedItems.push(processedItem);
+            }
+        }
+        
+        return processedItems;
     }
 
     extractText(property) {
@@ -133,6 +145,59 @@ class NotionCV {
         // }
         
         return '';
+    }
+
+    async checkPageContent(pageId) {
+        try {
+            const response = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children`, {
+                headers: {
+                    'Authorization': `Bearer ${NOTION_TOKEN}`,
+                    'Content-Type': 'application/json',
+                    'Notion-Version': '2022-06-28'
+                }
+            });
+
+            if (!response.ok) {
+                return false; // If we can't fetch content, assume no content
+            }
+
+            const data = await response.json();
+            
+            // Check if there are any blocks with actual content
+            if (!data.results || data.results.length === 0) {
+                return false;
+            }
+            
+            // Check if any block has meaningful content (not just empty blocks)
+            const hasContent = data.results.some(block => {
+                // Check different block types for content
+                if (block.type === 'paragraph' && block.paragraph?.rich_text?.length > 0) {
+                    return block.paragraph.rich_text.some(text => text.plain_text.trim().length > 0);
+                }
+                if (block.type === 'heading_1' && block.heading_1?.rich_text?.length > 0) {
+                    return block.heading_1.rich_text.some(text => text.plain_text.trim().length > 0);
+                }
+                if (block.type === 'heading_2' && block.heading_2?.rich_text?.length > 0) {
+                    return block.heading_2.rich_text.some(text => text.plain_text.trim().length > 0);
+                }
+                if (block.type === 'heading_3' && block.heading_3?.rich_text?.length > 0) {
+                    return block.heading_3.rich_text.some(text => text.plain_text.trim().length > 0);
+                }
+                if (block.type === 'bulleted_list_item' && block.bulleted_list_item?.rich_text?.length > 0) {
+                    return block.bulleted_list_item.rich_text.some(text => text.plain_text.trim().length > 0);
+                }
+                if (block.type === 'numbered_list_item' && block.numbered_list_item?.rich_text?.length > 0) {
+                    return block.numbered_list_item.rich_text.some(text => text.plain_text.trim().length > 0);
+                }
+                // Add other block types as needed
+                return false;
+            });
+            
+            return hasContent;
+        } catch (error) {
+            console.warn('Error checking page content:', error);
+            return false; // If there's an error, assume no content
+        }
     }
 
     getCategoryClass(category) {
@@ -236,12 +301,16 @@ class NotionCV {
     renderItem(item) {
         let html = `<div class="cv-item">`;
         
-        // Generate Notion public page URL
-        const notionPageUrl = this.generateNotionPageUrl(item.id);
-        
         // Combine icon and title
         const displayTitle = item.icon ? `${item.icon} ${item.title}` : item.title;
-        html += `<h3><a href="${notionPageUrl}" target="_blank">${displayTitle}</a></h3>`;
+        
+        // Only make it a link if the page has content
+        if (item.hasContent) {
+            const notionPageUrl = this.generateNotionPageUrl(item.id);
+            html += `<h3><a href="${notionPageUrl}" target="_blank">${displayTitle}</a></h3>`;
+        } else {
+            html += `<h3>${displayTitle}</h3>`;
+        }
         
         if (item.description) {
             html += `<p>${item.description}</p>`;
