@@ -91,23 +91,46 @@ async function checkContent(pageId) {
       res.on('end', () => {
         try {
           const content = JSON.parse(body);
-          const hasContent = content.results && content.results.length > 0 && 
-            content.results.some(block => {
-              const types = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'bulleted_list_item', 'numbered_list_item'];
-              return types.some(type => {
-                const blockData = block[type];
-                return blockData && blockData.rich_text && blockData.rich_text.length > 0 &&
-                  blockData.rich_text.some(text => text.plain_text.trim().length > 0);
-              });
-            });
-          resolve(hasContent);
+          
+          if (!content.results || content.results.length === 0) {
+            resolve({ hasContent: false, content: '' });
+            return;
+          }
+          
+          // Extract text content from blocks
+          const contentText = content.results.map(block => {
+            if (block.type === 'paragraph' && block.paragraph?.rich_text?.length > 0) {
+              return block.paragraph.rich_text.map(text => text.plain_text).join('');
+            }
+            if (block.type === 'heading_1' && block.heading_1?.rich_text?.length > 0) {
+              return '# ' + block.heading_1.rich_text.map(text => text.plain_text).join('');
+            }
+            if (block.type === 'heading_2' && block.heading_2?.rich_text?.length > 0) {
+              return '## ' + block.heading_2.rich_text.map(text => text.plain_text).join('');
+            }
+            if (block.type === 'heading_3' && block.heading_3?.rich_text?.length > 0) {
+              return '### ' + block.heading_3.rich_text.map(text => text.plain_text).join('');
+            }
+            if (block.type === 'bulleted_list_item' && block.bulleted_list_item?.rich_text?.length > 0) {
+              return '• ' + block.bulleted_list_item.rich_text.map(text => text.plain_text).join('');
+            }
+            if (block.type === 'numbered_list_item' && block.numbered_list_item?.rich_text?.length > 0) {
+              return '1. ' + block.numbered_list_item.rich_text.map(text => text.plain_text).join('');
+            }
+            return '';
+          }).filter(text => text.trim().length > 0);
+          
+          const hasContent = contentText.length > 0;
+          const contentString = contentText.join('\n\n');
+          
+          resolve({ hasContent, content: contentString });
         } catch (e) {
-          resolve(false);
+          resolve({ hasContent: false, content: '' });
         }
       });
     });
     
-    req.on('error', () => resolve(false));
+    req.on('error', () => resolve({ hasContent: false, content: '' }));
     req.end();
   });
 }
@@ -176,7 +199,7 @@ async function processData() {
       const properties = item.properties;
       
       console.log(`   Checking content for: ${extractText(properties.Name)}`);
-      const hasContent = await checkContent(item.id);
+      const contentResult = await checkContent(item.id);
       
       const processedItem = {
         id: item.id,
@@ -188,7 +211,8 @@ async function processData() {
         location: extractText(properties.Location),
         url: extractUrl(properties.URL),
         icon: extractIcon(item),
-        hasContent: hasContent
+        hasContent: contentResult.hasContent,
+        pageContent: contentResult.content
       };
       
       if (processedItem.title) {

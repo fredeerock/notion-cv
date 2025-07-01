@@ -93,6 +93,39 @@ body {
     text-decoration: underline;
 }
 
+/* Controls */
+.controls {
+    text-align: center;
+    margin: 1.5em 0;
+}
+
+.toggle-btn {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    padding: 0.5em 1em;
+    font-family: 'EB Garamond', serif;
+    font-size: 11pt;
+    cursor: pointer;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+    background: #e9ecef;
+    border-color: #999;
+}
+
+.toggle-icon {
+    transition: transform 0.2s ease;
+}
+
+.toggle-btn.expanded .toggle-icon {
+    transform: rotate(180deg);
+}
+
 /* Main Content */
 .cv-main {
     margin-top: 1em;
@@ -212,6 +245,21 @@ body {
     font-size: 10.5pt;
 }
 
+.cv-item .page-content {
+    margin-top: 0.6em;
+    padding: 0.8em;
+    background: #f8f9fa;
+    border-left: 3px solid #dee2e6;
+    font-size: 10pt;
+    line-height: 1.5;
+    white-space: pre-line;
+    display: none;
+}
+
+.cv-item .page-content.expanded {
+    display: block;
+}
+
 /* Loading and Error States */
 .loading {
     text-align: center;
@@ -273,12 +321,25 @@ body {
         color: #2c2c2c !important;
         text-decoration: none !important;
     }
-    
-    /* Hide link indicators in print */
+     /* Hide link indicators in print */
     .cv-item h3 a::after {
         display: none;
     }
     
+    /* Show all page content when printing */
+    .cv-item .page-content {
+        display: block !important;
+        background: transparent !important;
+        border: 1px solid #ddd !important;
+        margin-top: 0.4em !important;
+        font-size: 9pt !important;
+    }
+    
+    /* Hide toggle button in print */
+    .controls {
+        display: none !important;
+    }
+
     /* Ensure proper page breaks */
     .category-section {
         page-break-inside: avoid;

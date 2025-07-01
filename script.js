@@ -35,7 +35,7 @@ class NotionCV {
         try {
             await this.loadData();
             this.renderCV();
-            generateQRCode(); // Generate QR code on init
+            this.setupToggleButton();
         } catch (error) {
             this.showError(error.message);
         }
@@ -178,6 +178,11 @@ class NotionCV {
             html += `<p class="meta">${meta.join(', ')}</p>`;
         }
         
+        // Add page content if available
+        if (item.pageContent && item.pageContent.trim().length > 0) {
+            html += `<div class="page-content" data-item-id="${item.id}">${item.pageContent}</div>`;
+        }
+        
         html += `</div>`;
         
         return html;
@@ -196,6 +201,35 @@ class NotionCV {
         if (loading) loading.style.display = 'none';
         
         container.innerHTML = `<div class="error">Error loading CV data: ${message}</div>`;
+    }
+
+    setupToggleButton() {
+        const toggleBtn = document.getElementById('toggle-content');
+        if (!toggleBtn) return;
+
+        let isExpanded = false;
+
+        toggleBtn.addEventListener('click', () => {
+            isExpanded = !isExpanded;
+            const pageContents = document.querySelectorAll('.page-content');
+            const toggleText = toggleBtn.querySelector('.toggle-text');
+            
+            pageContents.forEach(content => {
+                if (isExpanded) {
+                    content.classList.add('expanded');
+                } else {
+                    content.classList.remove('expanded');
+                }
+            });
+
+            if (isExpanded) {
+                toggleText.textContent = 'Hide All Page Contents';
+                toggleBtn.classList.add('expanded');
+            } else {
+                toggleText.textContent = 'Show All Page Contents';
+                toggleBtn.classList.remove('expanded');
+            }
+        });
     }
 }
 
