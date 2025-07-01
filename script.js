@@ -180,12 +180,160 @@ class NotionCV {
         
         // Add page content if available
         if (item.pageContent && item.pageContent.trim().length > 0) {
-            html += `<div class="page-content" data-item-id="${item.id}">${item.pageContent}</div>`;
+            const processedContent = this.processPageContent(item.pageContent);
+            html += `<div class="page-content" data-item-id="${item.id}">${processedContent}</div>`;
         }
         
         html += `</div>`;
         
         return html;
+    }
+
+    processPageContent(content) {
+        // Convert plain text to HTML with proper line breaks
+        let processedContent = content
+            .split('\n\n')
+            .map(paragraph => {
+                // Handle headings
+                if (paragraph.startsWith('### ')) {
+                    return `<h6>${paragraph.substring(4)}</h6>`;
+                } else if (paragraph.startsWith('## ')) {
+                    return `<h5>${paragraph.substring(3)}</h5>`;
+                } else if (paragraph.startsWith('# ')) {
+                    return `<h4>${paragraph.substring(2)}</h4>`;
+                }
+                // Handle bullet points
+                else if (paragraph.startsWith('• ')) {
+                    return `<ul><li>${paragraph.substring(2)}</li></ul>`;
+                }
+                // Handle numbered lists
+                else if (paragraph.match(/^\d+\. /)) {
+                    return `<ol><li>${paragraph.replace(/^\d+\. /, '')}</li></ol>`;
+                }
+                // Handle image markers
+                else if (paragraph.match(/^\[IMAGE:.*\]$/)) {
+                    return this.renderImage(paragraph);
+                }
+                // Handle video markers
+                else if (paragraph.match(/^\[VIDEO:.*\]$/)) {
+                    return this.renderVideo(paragraph);
+                }
+                // Regular paragraphs
+                else if (paragraph.trim()) {
+                    return `<p>${paragraph}</p>`;
+                }
+                
+                return '';
+            })
+            .filter(p => p.length > 0)
+            .join('');
+
+        // Combine consecutive list items
+        processedContent = processedContent
+            .replace(/<\/ul>\s*<ul>/g, '')
+            .replace(/<\/ol>\s*<ol>/g, '');
+
+        return processedContent;
+    }
+
+    renderImage(imageMarker) {
+        // Parse [IMAGE:url] or [IMAGE:url:caption] format
+        // Handle URLs with multiple colons (like AWS S3 URLs)
+        const match = imageMarker.match(/^\[IMAGE:(.+)\]$/);
+        if (!match) return '';
+        
+        const content = match[1];
+        
+        // Try to split by the last colon to separate URL from caption
+        // This handles cases where the URL itself contains colons
+        let url, caption = '';
+        
+        const lastColonIndex = content.lastIndexOf(':');
+        if (lastColonIndex > 6 && !content.substring(lastColonIndex + 1).includes('/')) {
+            // If there's a colon after position 6 (to account for "https:") 
+            // and what follows doesn't contain slashes (likely not part of the URL)
+            // then treat it as a caption
+            url = content.substring(0, lastColonIndex);
+            caption = content.substring(lastColonIndex + 1);
+        } else {
+            // Otherwise, treat the whole thing as the URL
+            url = content;
+        }
+        
+        let html = `<div class="image-container">`;
+        html += `<img src="${url}" alt="${caption}" loading="lazy" style="max-width: 100%; height: auto; border-radius: 4px;">`;
+        if (caption && caption.trim()) {
+            html += `<div class="image-caption">${caption}</div>`;
+        }
+        html += `</div>`;
+        
+        return html;
+    }
+
+    renderVideo(videoMarker) {
+        // Parse [VIDEO:url] or [VIDEO:url:caption] format
+        // Handle URLs with multiple colons (like AWS S3 URLs)
+        const match = videoMarker.match(/^\[VIDEO:(.+)\]$/);
+        if (!match) return '';
+        
+        const content = match[1];
+        
+        // Try to split by the last colon to separate URL from caption
+        let url, caption = '';
+        
+        const lastColonIndex = content.lastIndexOf(':');
+        if (lastColonIndex > 6 && !content.substring(lastColonIndex + 1).includes('/')) {
+            url = content.substring(0, lastColonIndex);
+            caption = content.substring(lastColonIndex + 1);
+        } else {
+            url = content;
+        }
+        
+        let html = `<div class="video-container">`;
+        
+        // Check if it's a YouTube or Vimeo URL and embed accordingly
+        if (url.includes('youtube.com') || url.includes('youtu.be')) {
+            const videoId = this.extractYouTubeId(url);
+            if (videoId) {
+                html += `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen style="width: 100%; height: 315px; border-radius: 4px;"></iframe>`;
+            }
+        } else if (url.includes('vimeo.com')) {
+            const videoId = this.extractVimeoId(url);
+            if (videoId) {
+                html += `<iframe src="https://player.vimeo.com/video/${videoId}" frameborder="0" allowfullscreen style="width: 100%; height: 315px; border-radius: 4px;"></iframe>`;
+            }
+        } else {
+            // For direct video files
+            html += `<video controls style="max-width: 100%; height: auto; border-radius: 4px;">`;
+            html += `<source src="${url}" type="video/mp4">`;
+            html += `Your browser does not support the video tag.`;
+            html += `</video>`;
+        }
+        
+        if (caption && caption.trim()) {
+            html += `<div class="video-caption">${caption}</div>`;
+        }
+        html += `</div>`;
+        
+        return html;
+    }
+
+    extractYouTubeId(url) {
+        const patterns = [
+            /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+            /youtube\.com\/embed\/([^&\n?#]+)/
+        ];
+        
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) return match[1];
+        }
+        return null;
+    }
+
+    extractVimeoId(url) {
+        const match = url.match(/vimeo\.com\/(\d+)/);
+        return match ? match[1] : null;
     }
 
     generateNotionPageUrl(itemId) {

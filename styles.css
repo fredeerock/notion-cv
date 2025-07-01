@@ -252,12 +252,68 @@ body {
     border-left: 3px solid #dee2e6;
     font-size: 10pt;
     line-height: 1.5;
-    white-space: pre-line;
     display: none;
 }
 
 .cv-item .page-content.expanded {
     display: block;
+}
+
+/* Page content formatting */
+.page-content h4, .page-content h5, .page-content h6 {
+    margin: 0.8em 0 0.4em 0;
+    font-weight: 600;
+    color: #2c2c2c;
+}
+
+.page-content h4 {
+    font-size: 11pt;
+}
+
+.page-content h5 {
+    font-size: 10.5pt;
+}
+
+.page-content h6 {
+    font-size: 10pt;
+}
+
+.page-content p {
+    margin: 0.5em 0;
+}
+
+.page-content ul, .page-content ol {
+    margin: 0.5em 0;
+    padding-left: 1.2em;
+}
+
+.page-content li {
+    margin: 0.2em 0;
+}
+
+/* Image and video containers */
+.image-container, .video-container {
+    margin: 1em 0;
+    text-align: center;
+}
+
+.image-container img {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+}
+
+.video-container iframe,
+.video-container video {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+}
+
+.image-caption, .video-caption {
+    margin-top: 0.5em;
+    font-size: 9pt;
+    color: #6c757d;
+    font-style: italic;
+    line-height: 1.3;
 }
 
 /* Loading and Error States */
@@ -333,6 +389,42 @@ body {
         border: 1px solid #ddd !important;
         margin-top: 0.4em !important;
         font-size: 9pt !important;
+    }
+    
+    /* Print styles for images and videos */
+    .image-container, .video-container {
+        margin: 0.5em 0;
+        page-break-inside: avoid;
+    }
+    
+    .image-container img {
+        max-width: 100% !important;
+        height: auto !important;
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+    }
+    
+    /* Hide videos in print (they can't be played anyway) */
+    .video-container iframe,
+    .video-container video {
+        display: none !important;
+    }
+    
+    /* Show video placeholder for print */
+    .video-container::after {
+        content: "[Video content - view online]";
+        display: block;
+        text-align: center;
+        padding: 1em;
+        border: 1px dashed #999;
+        color: #666;
+        font-style: italic;
+        font-size: 8pt;
+    }
+    
+    .image-caption, .video-caption {
+        font-size: 8pt !important;
+        margin-top: 0.3em !important;
     }
     
     /* Hide toggle button in print */

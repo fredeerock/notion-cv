@@ -117,6 +117,44 @@ async function checkContent(pageId) {
             if (block.type === 'numbered_list_item' && block.numbered_list_item?.rich_text?.length > 0) {
               return '1. ' + block.numbered_list_item.rich_text.map(text => text.plain_text).join('');
             }
+            if (block.type === 'image') {
+              // Handle different image sources
+              let imageUrl = '';
+              let caption = '';
+              
+              if (block.image.type === 'file' && block.image.file?.url) {
+                imageUrl = block.image.file.url;
+              } else if (block.image.type === 'external' && block.image.external?.url) {
+                imageUrl = block.image.external.url;
+              }
+              
+              if (block.image.caption && block.image.caption.length > 0) {
+                caption = block.image.caption.map(text => text.plain_text).join('');
+              }
+              
+              if (imageUrl) {
+                return `[IMAGE:${imageUrl}${caption ? ':' + caption : ''}]`;
+              }
+            }
+            if (block.type === 'video') {
+              // Handle video blocks similarly
+              let videoUrl = '';
+              let caption = '';
+              
+              if (block.video.type === 'file' && block.video.file?.url) {
+                videoUrl = block.video.file.url;
+              } else if (block.video.type === 'external' && block.video.external?.url) {
+                videoUrl = block.video.external.url;
+              }
+              
+              if (block.video.caption && block.video.caption.length > 0) {
+                caption = block.video.caption.map(text => text.plain_text).join('');
+              }
+              
+              if (videoUrl) {
+                return `[VIDEO:${videoUrl}${caption ? ':' + caption : ''}]`;
+              }
+            }
             return '';
           }).filter(text => text.trim().length > 0);
           
