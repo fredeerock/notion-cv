@@ -298,7 +298,7 @@ body {
     
     .qr-code {
         position: static;
-        order: -1; /* Move QR code above text on mobile */
+        order: 1; /* Move QR code below text on mobile */
     }
     
     .cv-header h1 {
