@@ -167,7 +167,7 @@ class NotionCV {
         }
         
         if (item.description) {
-            html += `<p>${item.description}</p>`;
+            html += `<p class="description">${item.description}</p>`;
         }
         
         let meta = [];
