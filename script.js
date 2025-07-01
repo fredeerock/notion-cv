@@ -20,6 +20,24 @@ class NotionCV {
     }
 
     async fetchData() {
+        // Try to fetch pre-built data first (for GitHub Pages)
+        try {
+            const response = await fetch('./notion-data.json');
+            if (response.ok) {
+                console.log('Using pre-fetched data from notion-data.json');
+                const data = await response.json();
+                this.cvData = data;
+                return;
+            }
+        } catch (error) {
+            console.log('Pre-fetched data not available, falling back to live API');
+        }
+
+        // Fallback to live API (for local development)
+        if (!NOTION_TOKEN || NOTION_TOKEN === 'TOKEN_WILL_BE_INJECTED') {
+            throw new Error('Notion token not available. Please check your configuration.');
+        }
+
         const response = await fetch(`https://api.notion.com/v1/databases/${DATABASE_ID}/query`, {
             method: 'POST',
             headers: {
@@ -148,6 +166,11 @@ class NotionCV {
     }
 
     async checkPageContent(pageId) {
+        // Skip API call if token is not available (production mode)
+        if (!NOTION_TOKEN || NOTION_TOKEN === 'TOKEN_WILL_BE_INJECTED') {
+            return false; // Will be handled by pre-fetched data
+        }
+
         try {
             const response = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children`, {
                 headers: {
