@@ -230,13 +230,14 @@ async function checkContent(pageId) {
 
 async function downloadImage(imageUrl) {
   try {
-    // Create a unique filename based on the URL hash
-    const hash = crypto.createHash('md5').update(imageUrl).digest('hex');
+    // Extract the stable part of the URL (before query parameters) for hashing
+    const url = new URL(imageUrl);
+    const stableUrl = url.origin + url.pathname;
+    const hash = crypto.createHash('md5').update(stableUrl).digest('hex');
     
     // Try to determine file extension from URL
     let extension = '.png'; // default
-    const urlPath = new URL(imageUrl).pathname;
-    const match = urlPath.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+    const match = url.pathname.match(/\.(jpg|jpeg|png|gif|webp)$/i);
     if (match) {
       extension = '.' + match[1].toLowerCase();
     }
