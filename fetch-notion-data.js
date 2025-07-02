@@ -345,53 +345,75 @@ async function fetchTableData(tableId) {
 async function fetchNotionData() {
   console.log('🔄 Fetching data from Notion...');
   
-  const postData = JSON.stringify({
-    sorts: [
-      {
-        property: 'Category',
-        direction: 'ascending'
-      },
-      {
-        property: 'Date',
-        direction: 'descending'
-      }
-    ]
-  });
+  let allResults = [];
+  let hasMore = true;
+  let nextCursor = undefined;
+  let pageCount = 0;
 
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: 'api.notion.com',
-      path: `/v1/databases/${DATABASE_ID}/query`,
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${NOTION_TOKEN}`,
-        'Content-Type': 'application/json',
-        'Notion-Version': '2022-06-28',
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => body += chunk);
-      res.on('end', () => {
-        try {
-          const data = JSON.parse(body);
-          if (res.statusCode !== 200) {
-            reject(new Error(`HTTP ${res.statusCode}: ${data.message || body}`));
-            return;
-          }
-          resolve(data);
-        } catch (e) {
-          reject(new Error(`Failed to parse response: ${e.message}`));
+  while (hasMore) {
+    pageCount++;
+    console.log(`   Fetching page ${pageCount}...`);
+    
+    const postData = JSON.stringify({
+      sorts: [
+        {
+          property: 'Category',
+          direction: 'ascending'
+        },
+        {
+          property: 'Date',
+          direction: 'descending'
         }
-      });
+      ],
+      ...(nextCursor && { start_cursor: nextCursor })
     });
 
-    req.on('error', reject);
-    req.write(postData);
-    req.end();
-  });
+    const pageData = await new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'api.notion.com',
+        path: `/v1/databases/${DATABASE_ID}/query`,
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${NOTION_TOKEN}`,
+          'Content-Type': 'application/json',
+          'Notion-Version': '2022-06-28',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      };
+
+      const req = https.request(options, (res) => {
+        let body = '';
+        res.on('data', (chunk) => body += chunk);
+        res.on('end', () => {
+          try {
+            const data = JSON.parse(body);
+            if (res.statusCode !== 200) {
+              reject(new Error(`HTTP ${res.statusCode}: ${data.message || body}`));
+              return;
+            }
+            resolve(data);
+          } catch (e) {
+            reject(new Error(`Failed to parse response: ${e.message}`));
+          }
+        });
+      });
+
+      req.on('error', reject);
+      req.write(postData);
+      req.end();
+    });
+
+    allResults = allResults.concat(pageData.results || []);
+    hasMore = pageData.has_more;
+    nextCursor = pageData.next_cursor;
+    
+    console.log(`   Got ${pageData.results?.length || 0} items from page ${pageCount}`);
+  }
+
+  console.log(`📄 Total pages fetched: ${pageCount}`);
+  console.log(`📊 Total items retrieved: ${allResults.length}`);
+  
+  return { results: allResults };
 }
 
 async function processData() {
