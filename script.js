@@ -166,33 +166,59 @@ class NotionCV {
             html += `<h3>${displayTitle}</h3>`;
         }
         
-        // Special handling for education items - show location instead of description
-        if (item.category === '1.01 Education') {
-            // For education items, don't show description, we'll show location in meta instead
-        } else {
-            // For all other items, show description as normal
-            if (item.description) {
-                html += `<p class="description">${item.description}</p>`;
+        // Show all non-empty properties dynamically
+        let properties = [];
+        let description = '';
+        
+        // Define properties to skip (internal/display properties or already shown)
+        const skipProperties = ['id', 'title', 'icon', 'hasContent', 'pageContent', 'year', 'category', 'showLocation?', 'show Location?', 'relatedItem'];
+        
+        // Check all properties in the item and add non-empty ones
+        Object.keys(item).forEach(key => {
+            if (!skipProperties.includes(key)) {
+                const value = item[key];
+                // Check if value exists and is not empty (handles strings, numbers, booleans)
+                if (value !== null && value !== undefined && value !== '' && 
+                    !(Array.isArray(value) && value.length === 0)) {
+                    
+                    // Handle description specially - no label
+                    if (key === 'description') {
+                        description = value;
+                    } else if (key === 'location') {
+                        // Only show location if showLocation? checkbox is true
+                        if (item['showLocation?'] === true) {
+                            const formattedKey = key.charAt(0).toUpperCase() + key.slice(1)
+                                .replace(/([A-Z])/g, ' $1').trim();
+                            properties.push(`<strong>${formattedKey}:</strong> ${value}`);
+                        }
+                    } else {
+                        // Format the property name (capitalize first letter, handle camelCase)
+                        const formattedKey = key.charAt(0).toUpperCase() + key.slice(1)
+                            .replace(/([A-Z])/g, ' $1').trim();
+                        
+                        // Handle URLs specially
+                        if (key.toLowerCase().includes('url') && typeof value === 'string' && value.trim()) {
+                            properties.push(`<strong>${formattedKey}:</strong> <a href="${value}" target="_blank">${value}</a>`);
+                        } else {
+                            properties.push(`<strong>${formattedKey}:</strong> ${value}`);
+                        }
+                    }
+                }
             }
+        });
+        
+        // Display description first (without label)
+        if (description) {
+            html += `<p class="description">${description}</p>`;
         }
         
-        let meta = [];
-        if (item.institution) meta.push(item.institution);
-        
-        // For education items, extract location from description and show it in meta
-        if (item.category === '1.01 Education' && item.description) {
-            // Extract location from description (assuming it's at the beginning before any period or comma)
-            const locationMatch = item.description.match(/^([^.]+)/);
-            if (locationMatch) {
-                const location = locationMatch[1].trim();
-                if (location) meta.push(location);
-            }
-        } else if (item.location) {
-            meta.push(item.location);
-        }
-        
-        if (meta.length > 0) {
-            html += `<p class="meta">${meta.join(', ')}</p>`;
+        // Display other properties
+        if (properties.length > 0) {
+            html += `<div class="properties">`;
+            properties.forEach(prop => {
+                html += `<p class="property">${prop}</p>`;
+            });
+            html += `</div>`;
         }
         
         // Add page content if available

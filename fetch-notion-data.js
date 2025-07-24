@@ -71,6 +71,125 @@ function extractUrl(property) {
   return property.url || '';
 }
 
+function extractNumber(property) {
+  if (!property || property.type !== 'number') return null;
+  return property.number;
+}
+
+function extractCheckbox(property) {
+  if (!property || property.type !== 'checkbox') return false;
+  return property.checkbox;
+}
+
+function extractPeople(property) {
+  if (!property || property.type !== 'people') return [];
+  return property.people ? property.people.map(person => person.name || person.id) : [];
+}
+
+function extractFiles(property) {
+  if (!property || property.type !== 'files') return [];
+  return property.files ? property.files.map(file => file.name || file.file?.url || file.external?.url).filter(Boolean) : [];
+}
+
+function extractEmail(property) {
+  if (!property || property.type !== 'email') return '';
+  return property.email || '';
+}
+
+function extractPhoneNumber(property) {
+  if (!property || property.type !== 'phone_number') return '';
+  return property.phone_number || '';
+}
+
+function extractFormula(property) {
+  if (!property || property.type !== 'formula') return null;
+  const result = property.formula;
+  if (!result) return null;
+  
+  // Extract value based on formula result type
+  if (result.type === 'string') return result.string;
+  if (result.type === 'number') return result.number;
+  if (result.type === 'boolean') return result.boolean;
+  if (result.type === 'date' && result.date) return result.date.start;
+  return null;
+}
+
+function extractRollup(property) {
+  if (!property || property.type !== 'rollup') return null;
+  const result = property.rollup;
+  if (!result) return null;
+  
+  // Extract value based on rollup result type
+  if (result.type === 'number') return result.number;
+  if (result.type === 'array') return result.array?.map(item => extractPropertyValue(item)) || [];
+  return null;
+}
+
+function extractCreatedTime(property) {
+  if (!property || property.type !== 'created_time') return null;
+  return property.created_time;
+}
+
+function extractLastEditedTime(property) {
+  if (!property || property.type !== 'last_edited_time') return null;
+  return property.last_edited_time;
+}
+
+function extractCreatedBy(property) {
+  if (!property || property.type !== 'created_by') return '';
+  return property.created_by?.name || property.created_by?.id || '';
+}
+
+function extractLastEditedBy(property) {
+  if (!property || property.type !== 'last_edited_by') return '';
+  return property.last_edited_by?.name || property.last_edited_by?.id || '';
+}
+
+function extractPropertyValue(property) {
+  if (!property || !property.type) return null;
+  
+  switch (property.type) {
+    case 'title':
+    case 'rich_text':
+      return extractText(property);
+    case 'select':
+      return extractSelect(property);
+    case 'multi_select':
+      return extractMultiSelect(property);
+    case 'date':
+      return extractDateYear(property);
+    case 'url':
+      return extractUrl(property);
+    case 'number':
+      return extractNumber(property);
+    case 'checkbox':
+      return extractCheckbox(property);
+    case 'people':
+      return extractPeople(property);
+    case 'files':
+      return extractFiles(property);
+    case 'email':
+      return extractEmail(property);
+    case 'phone_number':
+      return extractPhoneNumber(property);
+    case 'formula':
+      return extractFormula(property);
+    case 'rollup':
+      return extractRollup(property);
+    case 'created_time':
+      return extractCreatedTime(property);
+    case 'last_edited_time':
+      return extractLastEditedTime(property);
+    case 'created_by':
+      return extractCreatedBy(property);
+    case 'last_edited_by':
+      return extractLastEditedBy(property);
+    default:
+      console.warn(`   Unknown property type: ${property.type}`);
+      return null;
+  }
+}
+
 function extractIcon(item) {
   if (!item.icon) return '';
   if (item.icon.type === 'emoji') {
@@ -442,19 +561,49 @@ async function processData() {
       console.log(`   Checking content for: ${extractText(properties.Name)}`);
       const contentResult = await checkContent(item.id);
       
+      // Start with base properties
       const processedItem = {
         id: item.id,
         title: extractText(properties.Name),
-        category: extractMultiSelect(properties.Category).join(', ') || 'Other',
-        year: extractDateYear(properties.Date),
-        description: extractText(properties.Description),
-        institution: extractText(properties.Institution),
-        location: extractText(properties.Location),
-        url: extractUrl(properties.URL),
         icon: extractIcon(item),
         hasContent: contentResult.hasContent,
         pageContent: contentResult.content
       };
+      
+      // Dynamically extract all other properties
+      Object.keys(properties).forEach(propertyName => {
+        // Skip Name property (already handled as title)
+        if (propertyName === 'Name') return;
+        
+        const property = properties[propertyName];
+        const value = extractPropertyValue(property);
+        
+        // Only add properties with non-empty values
+        if (value !== null && value !== undefined && value !== '' && 
+            !(Array.isArray(value) && value.length === 0)) {
+          
+          // Convert property name to camelCase for consistency
+          const camelCaseName = propertyName.charAt(0).toLowerCase() + 
+            propertyName.slice(1).replace(/\s+(.)/g, (match, char) => char.toUpperCase());
+          
+          // Handle special cases for better naming
+          if (propertyName === 'Category') {
+            // For multi-select Category, join with commas or use first value
+            processedItem.category = Array.isArray(value) ? value.join(', ') : value;
+          } else if (propertyName === 'Date') {
+            // For Date properties, extract year
+            processedItem.year = value;
+          } else {
+            // Use camelCase name for all other properties
+            processedItem[camelCaseName] = value;
+          }
+        }
+      });
+      
+      // Ensure we have a category fallback
+      if (!processedItem.category) {
+        processedItem.category = 'Other';
+      }
       
       if (processedItem.title) {
         processedItems.push(processedItem);
