@@ -174,7 +174,7 @@ class NotionCV {
         const organized = {};
         
         this.cvData.forEach(item => {
-            const category = item.category || 'Other';
+            const categories = item.category ? item.category.split(',').map(cat => cat.trim()) : ['Other'];
             
             // Process date year on client-side from raw date property
             let year = null;
@@ -190,18 +190,21 @@ class NotionCV {
                 }
             }
             
-            if (!organized[category]) {
-                organized[category] = {};
-            }
-            
-            // Use 'no-date' as internal key for items without dates
-            const yearKey = year || 'no-date';
-            
-            if (!organized[category][yearKey]) {
-                organized[category][yearKey] = [];
-            }
-            
-            organized[category][yearKey].push(item);
+            // Add item to each category it belongs to
+            categories.forEach(category => {
+                if (!organized[category]) {
+                    organized[category] = {};
+                }
+                
+                // Use 'no-date' as internal key for items without dates
+                const yearKey = year || 'no-date';
+                
+                if (!organized[category][yearKey]) {
+                    organized[category][yearKey] = [];
+                }
+                
+                organized[category][yearKey].push(item);
+            });
         });
 
         return organized;
