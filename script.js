@@ -166,13 +166,30 @@ class NotionCV {
             html += `<h3>${displayTitle}</h3>`;
         }
         
-        if (item.description) {
-            html += `<p class="description">${item.description}</p>`;
+        // Special handling for education items - show location instead of description
+        if (item.category === '1.01 Education') {
+            // For education items, don't show description, we'll show location in meta instead
+        } else {
+            // For all other items, show description as normal
+            if (item.description) {
+                html += `<p class="description">${item.description}</p>`;
+            }
         }
         
         let meta = [];
         if (item.institution) meta.push(item.institution);
-        if (item.location) meta.push(item.location);
+        
+        // For education items, extract location from description and show it in meta
+        if (item.category === '1.01 Education' && item.description) {
+            // Extract location from description (assuming it's at the beginning before any period or comma)
+            const locationMatch = item.description.match(/^([^.]+)/);
+            if (locationMatch) {
+                const location = locationMatch[1].trim();
+                if (location) meta.push(location);
+            }
+        } else if (item.location) {
+            meta.push(item.location);
+        }
         
         if (meta.length > 0) {
             html += `<p class="meta">${meta.join(', ')}</p>`;
