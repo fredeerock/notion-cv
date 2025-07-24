@@ -76,6 +76,41 @@ function extractDateYear(property) {
   return null;
 }
 
+function extractDateRange(dateProperty, statusProperty) {
+  if (!dateProperty) return null;
+  if (dateProperty.type === 'date' && dateProperty.date) {
+    const startDate = dateProperty.date.start;
+    const endDate = dateProperty.date.end;
+    
+    if (startDate) {
+      // Extract start year
+      const startYearMatch = startDate.match(/^(\d{4})-/);
+      const startYear = startYearMatch ? parseInt(startYearMatch[1], 10) : null;
+      
+      if (endDate) {
+        // Extract end year
+        const endYearMatch = endDate.match(/^(\d{4})-/);
+        const endYear = endYearMatch ? parseInt(endYearMatch[1], 10) : null;
+        
+        if (startYear && endYear && startYear !== endYear) {
+          return `${startYear} - ${endYear}`;
+        }
+        // Don't return anything if start and end years are the same
+      } else if (startYear) {
+        // No end date, check if status indicates it's ongoing
+        const status = extractSelect(statusProperty);
+        if (status === 'Current' || status === 'In-Progress' || status === 'Ongoing') {
+          return `${startYear} - Present`;
+        } else {
+          // No end date and not ongoing, don't show any date range
+          return null;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function extractUrl(property) {
   if (!property || property.type !== 'url') return '';
   return property.url || '';
@@ -601,8 +636,13 @@ async function processData() {
             // For multi-select Category, join with commas or use first value
             processedItem.category = Array.isArray(value) ? value.join(', ') : value;
           } else if (propertyName === 'Date') {
-            // For Date properties, extract year
+            // For Date properties, extract year for organization and range for display
             processedItem.year = value;
+            // Also add the date range as a displayable property
+            const dateRange = extractDateRange(property, properties.Status);
+            if (dateRange) {
+              processedItem.dateRange = dateRange;
+            }
           } else {
             // Use camelCase name for all other properties
             processedItem[camelCaseName] = value;

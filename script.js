@@ -184,6 +184,13 @@ class NotionCV {
                     // Handle description specially - no label
                     if (key === 'description') {
                         description = value;
+                    } else if (key === 'dateRange') {
+                        // Show date range without label, like description
+                        if (!description) {
+                            description = value;
+                        } else {
+                            description = `${value}. ${description}`;
+                        }
                     } else if (key === 'location') {
                         // Only show location if showLocation? checkbox is true
                         if (item['showLocation?'] === true) {
