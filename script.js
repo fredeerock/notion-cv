@@ -79,6 +79,20 @@ function formatCurrency(value) {
     });
 }
 
+// Format comma-separated values with proper spacing
+function formatCommaSeparated(value) {
+    // Handle arrays by joining them with proper comma spacing
+    if (Array.isArray(value)) {
+        return value.join(', ');
+    }
+    
+    // Handle strings by splitting, trimming, and rejoining
+    if (typeof value !== 'string') return value;
+    
+    // Split by comma, trim whitespace, and rejoin with proper spacing
+    return value.split(',').map(item => item.trim()).join(', ');
+}
+
 // Generate QR code for custom URL
 function generateQRCode() {
     const customUrl = 'https://tiny.cc/derick';
@@ -287,7 +301,8 @@ class NotionCV {
                         if (item['showLocation?'] === true) {
                             const formattedKey = key.charAt(0).toUpperCase() + key.slice(1)
                                 .replace(/([A-Z])/g, ' $1').trim();
-                            properties.push(`<strong>${formattedKey}:</strong> ${value}`);
+                            const formattedValue = formatCommaSeparated(value);
+                            properties.push(`<strong>${formattedKey}:</strong> ${formattedValue}`);
                         }
                     } else {
                         // Format the property name (capitalize first letter, handle camelCase)
@@ -296,13 +311,16 @@ class NotionCV {
                         
                         // Handle URLs specially
                         if (key.toLowerCase().includes('url') && typeof value === 'string' && value.trim()) {
-                            properties.push(`<strong>${formattedKey}:</strong> <a href="${value}" target="_blank">${value}</a>`);
+                            const formattedValue = formatCommaSeparated(value);
+                            properties.push(`<strong>${formattedKey}:</strong> <a href="${value}" target="_blank">${formattedValue}</a>`);
                         } else if (key.toLowerCase().includes('grant amount') || key === 'grantAmount') {
                             // Format currency for Grant Amount
                             const formattedValue = formatCurrency(value);
                             properties.push(`<strong>${formattedKey}:</strong> ${formattedValue}`);
                         } else {
-                            properties.push(`<strong>${formattedKey}:</strong> ${value}`);
+                            // Format comma-separated values and regular properties
+                            const formattedValue = formatCommaSeparated(value);
+                            properties.push(`<strong>${formattedKey}:</strong> ${formattedValue}`);
                         }
                     }
                 }
