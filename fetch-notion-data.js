@@ -57,8 +57,18 @@ function extractMultiSelect(property) {
 function extractDateYear(property) {
   if (!property) return null;
   if (property.type === 'date' && property.date) {
+    // Use end date for year extraction if available, otherwise use start date
     const dateToUse = property.date.end || property.date.start;
     if (dateToUse) {
+      // Parse the date string directly to avoid timezone issues
+      // Notion dates are in YYYY-MM-DD format
+      const yearMatch = dateToUse.match(/^(\d{4})-/);
+      if (yearMatch) {
+        const year = parseInt(yearMatch[1], 10);
+        return isNaN(year) ? null : year;
+      }
+      
+      // Fallback to Date parsing if regex fails
       const year = new Date(dateToUse).getFullYear();
       return isNaN(year) ? null : year;
     }
