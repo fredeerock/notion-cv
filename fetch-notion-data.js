@@ -229,6 +229,9 @@ function extractPropertyValue(property) {
       return extractCreatedBy(property);
     case 'last_edited_by':
       return extractLastEditedBy(property);
+    case 'relation':
+      // Skip relation properties (Related Item fields) - we don't need them for the CV
+      return null;
     default:
       console.warn(`   Unknown property type: ${property.type}`);
       return null;
@@ -340,10 +343,14 @@ async function checkContent(pageId) {
         // Tables need special handling - we'll fetch their children rows
         return `[TABLE:${block.id}]`;
       }
+      if (block.type === 'synced_block') {
+        // Synced blocks need special handling - we'll fetch their children
+        return `[SYNCED_BLOCK:${block.id}]`;
+      }
       return '';
     }).filter(text => text.trim().length > 0);
     
-    // Process table markers and fetch table data, download images
+    // Process table markers, synced blocks, and download images
     const processedContent = [];
     for (const item of contentText) {
       if (item.startsWith('[TABLE:') && item.endsWith(']')) {
@@ -351,6 +358,12 @@ async function checkContent(pageId) {
         const tableData = await fetchTableData(tableId);
         if (tableData) {
           processedContent.push(`[TABLE_DATA:${tableData}]`);
+        }
+      } else if (item.startsWith('[SYNCED_BLOCK:') && item.endsWith(']')) {
+        const syncedBlockId = item.substring(14, item.length - 1);
+        const syncedBlockData = await fetchSyncedBlockData(syncedBlockId);
+        if (syncedBlockData) {
+          processedContent.push(syncedBlockData);
         }
       } else if (item.startsWith('[IMAGE:')) {
         // Process image downloads - handle URLs with multiple colons
@@ -511,6 +524,67 @@ async function fetchTableData(tableId) {
   });
 }
 
+async function fetchSyncedBlockData(syncedBlockId) {
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'api.notion.com',
+      path: `/v1/blocks/${syncedBlockId}/children`,
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${NOTION_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Notion-Version': '2022-06-28'
+      }
+    };
+    
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        try {
+          const content = JSON.parse(body);
+          
+          if (!content.results || content.results.length === 0) {
+            resolve('');
+            return;
+          }
+          
+          // Extract content from synced block children (similar to main content extraction)
+          const syncedContent = content.results.map(block => {
+            if (block.type === 'paragraph' && block.paragraph?.rich_text?.length > 0) {
+              return block.paragraph.rich_text.map(text => text.plain_text).join('');
+            }
+            if (block.type === 'heading_1' && block.heading_1?.rich_text?.length > 0) {
+              return '# ' + block.heading_1.rich_text.map(text => text.plain_text).join('');
+            }
+            if (block.type === 'heading_2' && block.heading_2?.rich_text?.length > 0) {
+              return '## ' + block.heading_2.rich_text.map(text => text.plain_text).join('');
+            }
+            if (block.type === 'heading_3' && block.heading_3?.rich_text?.length > 0) {
+              return '### ' + block.heading_3.rich_text.map(text => text.plain_text).join('');
+            }
+            if (block.type === 'bulleted_list_item' && block.bulleted_list_item?.rich_text?.length > 0) {
+              return '• ' + block.bulleted_list_item.rich_text.map(text => text.plain_text).join('');
+            }
+            if (block.type === 'numbered_list_item' && block.numbered_list_item?.rich_text?.length > 0) {
+              return '1. ' + block.numbered_list_item.rich_text.map(text => text.plain_text).join('');
+            }
+            // Add more block types as needed
+            return '';
+          }).filter(text => text.trim().length > 0);
+          
+          resolve(syncedContent.join('\n\n'));
+        } catch (e) {
+          resolve('');
+        }
+      });
+    });
+    
+    req.on('error', () => resolve(''));
+    req.end();
+  });
+}
+
 async function fetchNotionData() {
   console.log('🔄 Fetching data from Notion...');
   
@@ -653,6 +727,26 @@ async function processData() {
       // Ensure we have a category fallback
       if (!processedItem.category) {
         processedItem.category = 'Other';
+      }
+      
+      // Override hasContent for items with certain properties that should be clickable
+      // even if they don't have page content (e.g., items with Related Items)
+      if (!processedItem.hasContent) {
+        const importantProperties = ['relatedItems', 'files&Media', 'collaborators', 'creativeWorkMedium'];
+        const hasImportantProperty = importantProperties.some(prop => 
+          processedItem[prop] !== undefined && processedItem[prop] !== null && processedItem[prop] !== ''
+        );
+        
+        // Also make all creative works clickable since they often have Related Items (relation properties)
+        // that we skip during processing but should still be accessible
+        const isCreativeWork = processedItem.category === '3.01 Portfolio of Creative Works and Research Projects';
+        
+        if (hasImportantProperty || isCreativeWork) {
+          processedItem.hasContent = true;
+          if (!processedItem.pageContent) {
+            processedItem.pageContent = `[Content available - see properties and related items]`;
+          }
+        }
       }
       
       if (processedItem.title) {
