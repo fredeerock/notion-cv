@@ -317,9 +317,7 @@ class NotionCV {
         // Display other properties
         if (properties.length > 0) {
             html += `<div class="properties">`;
-            properties.forEach(prop => {
-                html += `<p class="property">${prop}</p>`;
-            });
+            html += `<p class="property-line">${properties.join(' • ')}</p>`;
             html += `</div>`;
         }
         
