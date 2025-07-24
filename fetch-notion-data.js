@@ -525,7 +525,7 @@ async function fetchTableData(tableId) {
 }
 
 async function fetchSyncedBlockData(syncedBlockId) {
-  return new Promise((resolve) => {
+  try {
     const options = {
       hostname: 'api.notion.com',
       path: `/v1/blocks/${syncedBlockId}/children`,
@@ -537,52 +537,154 @@ async function fetchSyncedBlockData(syncedBlockId) {
       }
     };
     
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => body += chunk);
-      res.on('end', () => {
-        try {
-          const content = JSON.parse(body);
-          
-          if (!content.results || content.results.length === 0) {
-            resolve('');
-            return;
+    const response = await new Promise((resolve, reject) => {
+      const req = https.request(options, (res) => {
+        let body = '';
+        res.on('data', (chunk) => body += chunk);
+        res.on('end', () => {
+          try {
+            const content = JSON.parse(body);
+            resolve(content);
+          } catch (e) {
+            reject(e);
           }
-          
-          // Extract content from synced block children (similar to main content extraction)
-          const syncedContent = content.results.map(block => {
-            if (block.type === 'paragraph' && block.paragraph?.rich_text?.length > 0) {
-              return block.paragraph.rich_text.map(text => text.plain_text).join('');
-            }
-            if (block.type === 'heading_1' && block.heading_1?.rich_text?.length > 0) {
-              return '# ' + block.heading_1.rich_text.map(text => text.plain_text).join('');
-            }
-            if (block.type === 'heading_2' && block.heading_2?.rich_text?.length > 0) {
-              return '## ' + block.heading_2.rich_text.map(text => text.plain_text).join('');
-            }
-            if (block.type === 'heading_3' && block.heading_3?.rich_text?.length > 0) {
-              return '### ' + block.heading_3.rich_text.map(text => text.plain_text).join('');
-            }
-            if (block.type === 'bulleted_list_item' && block.bulleted_list_item?.rich_text?.length > 0) {
-              return '• ' + block.bulleted_list_item.rich_text.map(text => text.plain_text).join('');
-            }
-            if (block.type === 'numbered_list_item' && block.numbered_list_item?.rich_text?.length > 0) {
-              return '1. ' + block.numbered_list_item.rich_text.map(text => text.plain_text).join('');
-            }
-            // Add more block types as needed
-            return '';
-          }).filter(text => text.trim().length > 0);
-          
-          resolve(syncedContent.join('\n\n'));
-        } catch (e) {
-          resolve('');
-        }
+        });
       });
+      
+      req.on('error', reject);
+      req.end();
     });
     
-    req.on('error', () => resolve(''));
-    req.end();
-  });
+    if (!response.results || response.results.length === 0) {
+      return '';
+    }
+    
+    // Extract content from synced block children (similar to main content extraction)
+    const syncedContent = response.results.map(block => {
+      if (block.type === 'paragraph' && block.paragraph?.rich_text?.length > 0) {
+        return block.paragraph.rich_text.map(text => text.plain_text).join('');
+      }
+      if (block.type === 'heading_1' && block.heading_1?.rich_text?.length > 0) {
+        return '# ' + block.heading_1.rich_text.map(text => text.plain_text).join('');
+      }
+      if (block.type === 'heading_2' && block.heading_2?.rich_text?.length > 0) {
+        return '## ' + block.heading_2.rich_text.map(text => text.plain_text).join('');
+      }
+      if (block.type === 'heading_3' && block.heading_3?.rich_text?.length > 0) {
+        return '### ' + block.heading_3.rich_text.map(text => text.plain_text).join('');
+      }
+      if (block.type === 'bulleted_list_item' && block.bulleted_list_item?.rich_text?.length > 0) {
+        return '• ' + block.bulleted_list_item.rich_text.map(text => text.plain_text).join('');
+      }
+      if (block.type === 'numbered_list_item' && block.numbered_list_item?.rich_text?.length > 0) {
+        return '1. ' + block.numbered_list_item.rich_text.map(text => text.plain_text).join('');
+      }
+      if (block.type === 'image') {
+        // Handle different image sources
+        let imageUrl = '';
+        let caption = '';
+        
+        if (block.image.type === 'file' && block.image.file?.url) {
+          imageUrl = block.image.file.url;
+        } else if (block.image.type === 'external' && block.image.external?.url) {
+          imageUrl = block.image.external.url;
+        }
+        
+        if (block.image.caption && block.image.caption.length > 0) {
+          caption = block.image.caption.map(text => text.plain_text).join('');
+        }
+        
+        if (imageUrl) {
+          return `[IMAGE:${imageUrl}${caption ? ':' + caption : ''}]`;
+        }
+      }
+      if (block.type === 'video') {
+        // Handle video blocks similarly
+        let videoUrl = '';
+        let caption = '';
+        
+        if (block.video.type === 'file' && block.video.file?.url) {
+          videoUrl = block.video.file.url;
+        } else if (block.video.type === 'external' && block.video.external?.url) {
+          videoUrl = block.video.external.url;
+        }
+        
+        if (block.video.caption && block.video.caption.length > 0) {
+          caption = block.video.caption.map(text => text.plain_text).join('');
+        }
+        
+        if (videoUrl) {
+          return `[VIDEO:${videoUrl}${caption ? ':' + caption : ''}]`;
+        }
+      }
+      if (block.type === 'table') {
+        // Tables need special handling - we'll fetch their children rows
+        return `[TABLE:${block.id}]`;
+      }
+      if (block.type === 'synced_block') {
+        // Handle nested synced blocks
+        return `[SYNCED_BLOCK:${block.id}]`;
+      }
+      return '';
+    }).filter(text => text.trim().length > 0);
+    
+    // Process the synced content through the same pipeline as main content
+    // to handle image downloads and other special content
+    const processedSyncedContent = [];
+    for (const item of syncedContent) {
+      if (item.startsWith('[TABLE:') && item.endsWith(']')) {
+        const tableId = item.substring(7, item.length - 1);
+        const tableData = await fetchTableData(tableId);
+        if (tableData) {
+          processedSyncedContent.push(`[TABLE_DATA:${tableData}]`);
+        }
+      } else if (item.startsWith('[SYNCED_BLOCK:') && item.endsWith(']')) {
+        // Handle nested synced blocks recursively
+        const nestedSyncedBlockId = item.substring(14, item.length - 1);
+        const nestedSyncedBlockData = await fetchSyncedBlockData(nestedSyncedBlockId);
+        if (nestedSyncedBlockData) {
+          processedSyncedContent.push(nestedSyncedBlockData);
+        }
+      } else if (item.startsWith('[IMAGE:')) {
+        // Process image downloads - handle URLs with multiple colons
+        const imageMatch = item.match(/^\[IMAGE:(.+)\]$/);
+        if (imageMatch) {
+          const content = imageMatch[1];
+          
+          // Try to split by the last colon to separate URL from caption
+          let originalUrl, caption = '';
+          
+          const lastColonIndex = content.lastIndexOf(':');
+          if (lastColonIndex > 6 && !content.substring(lastColonIndex + 1).includes('/')) {
+            // If there's a colon after position 6 (to account for "https:") 
+            // and what follows doesn't contain slashes (likely not part of the URL)
+            // then treat it as a caption
+            originalUrl = content.substring(0, lastColonIndex);
+            caption = content.substring(lastColonIndex + 1);
+          } else {
+            // Otherwise, treat the whole thing as the URL
+            originalUrl = content;
+          }
+          
+          try {
+            const localPath = await downloadImage(originalUrl);
+            processedSyncedContent.push(`[IMAGE:${localPath}${caption ? ':' + caption : ''}]`);
+          } catch (error) {
+            console.warn(`   Failed to download synced block image, using original URL: ${error.message}`);
+            processedSyncedContent.push(item); // Keep original if download fails
+          }
+        } else {
+          processedSyncedContent.push(item);
+        }
+      } else {
+        processedSyncedContent.push(item);
+      }
+    }
+    
+    return processedSyncedContent.join('\n\n');
+  } catch (e) {
+    return '';
+  }
 }
 
 async function fetchNotionData() {
