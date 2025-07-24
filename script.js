@@ -64,6 +64,21 @@ function extractDateRange(dateProperty, statusProperty) {
     }
 }
 
+// Currency formatting function
+function formatCurrency(value) {
+    // Convert to number if it's a string
+    const num = typeof value === 'string' ? parseFloat(value.replace(/[,$]/g, '')) : value;
+    
+    // Check if it's a valid number
+    if (isNaN(num)) return value;
+    
+    // Format as currency with commas and dollar sign
+    return '$' + num.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    });
+}
+
 // Generate QR code for custom URL
 function generateQRCode() {
     const customUrl = 'https://tiny.cc/derick';
@@ -282,6 +297,10 @@ class NotionCV {
                         // Handle URLs specially
                         if (key.toLowerCase().includes('url') && typeof value === 'string' && value.trim()) {
                             properties.push(`<strong>${formattedKey}:</strong> <a href="${value}" target="_blank">${value}</a>`);
+                        } else if (key.toLowerCase().includes('grant amount') || key === 'grantAmount') {
+                            // Format currency for Grant Amount
+                            const formattedValue = formatCurrency(value);
+                            properties.push(`<strong>${formattedKey}:</strong> ${formattedValue}`);
                         } else {
                             properties.push(`<strong>${formattedKey}:</strong> ${value}`);
                         }
