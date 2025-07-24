@@ -636,13 +636,13 @@ async function processData() {
             // For multi-select Category, join with commas or use first value
             processedItem.category = Array.isArray(value) ? value.join(', ') : value;
           } else if (propertyName === 'Date') {
-            // For Date properties, extract year for organization and range for display
-            processedItem.year = value;
-            // Also add the date range as a displayable property
-            const dateRange = extractDateRange(property, properties.Status);
-            if (dateRange) {
-              processedItem.dateRange = dateRange;
-            }
+            // Store raw date property for client-side processing
+            processedItem.dateProperty = property;
+          } else if (propertyName === 'Status') {
+            // Store raw status property for client-side processing
+            processedItem.statusProperty = property;
+            // Also store the processed value for display
+            processedItem[camelCaseName] = value;
           } else {
             // Use camelCase name for all other properties
             processedItem[camelCaseName] = value;

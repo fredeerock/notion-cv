@@ -1,6 +1,69 @@
 // Notion CV - Always uses local JSON data for fast loading
 const DATABASE_ID = '14fcf2908c698021aa5ee3656ab26d16';
 
+// Date processing functions for client-side processing
+function extractDateYear(dateProperty) {
+    if (!dateProperty) return null;
+    
+    // Handle different date property formats
+    let endDate = null;
+    let startDate = null;
+    
+    if (dateProperty.date) {
+        endDate = dateProperty.date.end;
+        startDate = dateProperty.date.start;
+    }
+    
+    if (endDate) {
+        // Use end date for organization if it exists
+        const endYear = endDate.split('-')[0];
+        return parseInt(endYear);
+    } else if (startDate) {
+        // Use start date if no end date
+        const startYear = startDate.split('-')[0];
+        return parseInt(startYear);
+    }
+    
+    return null;
+}
+
+function extractDateRange(dateProperty, statusProperty) {
+    if (!dateProperty) return null;
+    
+    let startDate = null;
+    let endDate = null;
+    
+    if (dateProperty.date) {
+        startDate = dateProperty.date.start;
+        endDate = dateProperty.date.end;
+    }
+    
+    if (!startDate) return null;
+    
+    const startYear = parseInt(startDate.split('-')[0]);
+    
+    if (endDate) {
+        const endYear = parseInt(endDate.split('-')[0]);
+        // Don't show range if same year
+        if (startYear === endYear) return null;
+        return `${startYear} - ${endYear}`;
+    } else {
+        // Check if this is an ongoing item based on status
+        let isOngoing = false;
+        if (statusProperty && statusProperty.select && statusProperty.select.name) {
+            const status = statusProperty.select.name.toLowerCase();
+            isOngoing = status.includes('current') || status.includes('in-progress') || status.includes('ongoing');
+        }
+        
+        if (isOngoing) {
+            return `${startYear} - Present`;
+        }
+        
+        // For non-ongoing items with no end date, don't show date range
+        return null;
+    }
+}
+
 // Generate QR code for custom URL
 function generateQRCode() {
     const customUrl = 'https://tiny.cc/derick';
@@ -83,7 +146,20 @@ class NotionCV {
         
         this.cvData.forEach(item => {
             const category = item.category || 'Other';
-            const year = item.year; // Don't default to 'Unknown'
+            
+            // Process date year on client-side from raw date property
+            let year = null;
+            if (item.dateProperty) {
+                year = extractDateYear(item.dateProperty);
+            }
+            
+            // Generate date range for display if we have raw properties
+            if (item.dateProperty && !item.dateRange) {
+                const dateRange = extractDateRange(item.dateProperty, item.statusProperty);
+                if (dateRange) {
+                    item.dateRange = dateRange;
+                }
+            }
             
             if (!organized[category]) {
                 organized[category] = {};
@@ -171,7 +247,7 @@ class NotionCV {
         let description = '';
         
         // Define properties to skip (internal/display properties or already shown)
-        const skipProperties = ['id', 'title', 'icon', 'hasContent', 'pageContent', 'year', 'category', 'showLocation?', 'show Location?', 'relatedItem'];
+        const skipProperties = ['id', 'title', 'icon', 'hasContent', 'pageContent', 'category', 'showLocation?', 'show Location?', 'relatedItem', 'dateProperty', 'statusProperty', 'files&Media', 'files & media'];
         
         // Check all properties in the item and add non-empty ones
         Object.keys(item).forEach(key => {
