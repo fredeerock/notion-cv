@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test YouTube ID Extraction</title>
+</head>
+<body>
+    <h1>YouTube ID Extraction Test</h1>
+    <div id="output"></div>
+
+    <script>
+        // Copy the functions from script.js
+        function extractYouTubeId(url) {
+            // Handle various YouTube URL formats
+            const patterns = [
+                /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
+            ];
+            
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) {
+                    return match[1];
+                }
+            }
+            return null;
+        }
+
+        // Test URLs from your data
+        const testUrls = [
+            "https://www.youtube.com/watch?v=AtVxiUVhQbI",
+            "https://youtu.be/xAzwXL3NcUE",
+            "https://www.youtube.com/watch?v=kJ_jDcoPNVw&t=228s",
+            "https://www.youtube.com/watch?v=HxrTkZM3w_8"
+        ];
+
+        let output = "";
+        testUrls.forEach(url => {
+            const id = extractYouTubeId(url);
+            output += `<p><strong>URL:</strong> ${url}<br><strong>Extracted ID:</strong> ${id}</p>`;
+        });
+
+        document.getElementById('output').innerHTML = output;
+    </script>
+</body>
+</html>

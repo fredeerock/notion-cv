@@ -49,6 +49,11 @@ function extractSelect(property) {
   return property.select ? property.select.name : '';
 }
 
+function extractMultiSelect(property) {
+  if (!property || property.type !== 'multi_select') return [];
+  return property.multi_select ? property.multi_select.map(item => item.name) : [];
+}
+
 function extractDateYear(property) {
   if (!property) return null;
   if (property.type === 'date' && property.date) {
@@ -440,7 +445,7 @@ async function processData() {
       const processedItem = {
         id: item.id,
         title: extractText(properties.Name),
-        category: extractSelect(properties.Category),
+        category: extractMultiSelect(properties.Category).join(', ') || 'Other',
         year: extractDateYear(properties.Date),
         description: extractText(properties.Description),
         institution: extractText(properties.Institution),

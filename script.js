@@ -1,14 +1,14 @@
 // Notion CV - Always uses local JSON data for fast loading
 const DATABASE_ID = '14fcf2908c698021aa5ee3656ab26d16';
 
-// Generate QR code for current page URL
+// Generate QR code for custom URL
 function generateQRCode() {
-    const currentUrl = window.location.href;
+    const customUrl = 'https://tiny.cc/derick';
     const qrImage = document.getElementById('qr-image');
     
     if (qrImage) {
         // Using QR Server API (free, reliable service)
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(currentUrl)}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(customUrl)}`;
         qrImage.src = qrUrl;
         qrImage.onerror = function() {
             // Fallback: hide QR code if service is unavailable
@@ -361,6 +361,36 @@ class NotionCV {
             console.error('Error parsing table data:', e);
             return '<div class="table-error">Error displaying table</div>';
         }
+    }
+
+    extractYouTubeId(url) {
+        // Handle various YouTube URL formats
+        const patterns = [
+            /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
+        ];
+        
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) {
+                return match[1];
+            }
+        }
+        return null;
+    }
+
+    extractVimeoId(url) {
+        // Handle various Vimeo URL formats
+        const patterns = [
+            /vimeo\.com\/(?:.*\/)?(\d+)/i
+        ];
+        
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) {
+                return match[1];
+            }
+        }
+        return null;
     }
 
     generateNotionPageUrl(itemId) {
