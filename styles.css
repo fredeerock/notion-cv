@@ -469,9 +469,23 @@ body {
 /* PDF and Print Styles */
 @media print {
     /* Hide interactive elements */
-    .controls,
-    .instructions {
+    .controls {
         display: none !important;
+    }
+    
+    /* Hide specific text that references interactive elements */
+    .hide-in-print {
+        display: none !important;
+    }
+    
+    /* Keep instructions visible in print */
+    .instructions {
+        margin: 8pt 0;
+        padding: 6pt;
+        font-size: 9pt;
+        line-height: 1.3;
+        background: #f8f9fa;
+        border: 0.5pt solid #e9ecef;
     }
     
     /* Page setup for US Letter (8.5" x 11") */
