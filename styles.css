@@ -736,7 +736,7 @@ body {
     .page-content .image-container {
         margin: 8pt 0 !important;
         text-align: center !important;
-        page-break-inside: avoid !important;
+        page-break-inside: auto !important; /* Allow images to be cut across pages to prevent blank space */
         clear: both !important;
     }
     
@@ -764,7 +764,7 @@ body {
     .page-content .video-container {
         margin: 8pt 0 !important;
         text-align: center !important;
-        page-break-inside: avoid !important;
+        page-break-inside: auto !important; /* Allow videos to be cut across pages to prevent blank space */
         clear: both !important;
     }
     
