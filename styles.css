@@ -652,11 +652,15 @@ body {
         font-size: 8.5pt;
         line-height: 1.4;
         /* Don't force display - respect current toggle state */
+        page-break-inside: avoid;
+        overflow: visible;
+        position: relative;
     }
     
     /* Only expanded content shows in print */
     .cv-item .page-content.expanded {
         display: block !important;
+        page-break-inside: auto; /* Allow breaks within long content */
     }
     
     /* Hidden content stays hidden in print */
@@ -723,6 +727,27 @@ body {
         border: none !important;
         box-shadow: none !important;
         background: transparent !important;
+        display: block !important;
+        margin: 6pt auto !important;
+    }
+    
+    /* Image containers need proper spacing in print */
+    .image-container,
+    .page-content .image-container {
+        margin: 8pt 0 !important;
+        text-align: center !important;
+        page-break-inside: avoid !important;
+        clear: both !important;
+    }
+    
+    /* Ensure proper spacing around images to prevent text overlay */
+    .page-content p + .image-container,
+    .page-content .image-container + p,
+    .page-content h4 + .image-container,
+    .page-content h5 + .image-container,
+    .page-content h6 + .image-container {
+        margin-top: 8pt !important;
+        margin-bottom: 8pt !important;
     }
     
     /* Remove borders from videos too */
@@ -732,6 +757,28 @@ body {
     .page-content video {
         border: none !important;
         box-shadow: none !important;
+    }
+    
+    /* Video containers need proper spacing in print */
+    .video-container,
+    .page-content .video-container {
+        margin: 8pt 0 !important;
+        text-align: center !important;
+        page-break-inside: avoid !important;
+        clear: both !important;
+    }
+    
+    /* Prevent floating issues that cause text overlay */
+    .page-content * {
+        float: none !important;
+        position: static !important;
+    }
+    
+    /* Ensure proper text flow around media elements */
+    .page-content::after {
+        content: "";
+        display: block;
+        clear: both;
     }
     
     /* Better table formatting for print */
