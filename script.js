@@ -157,6 +157,7 @@ class NotionCV {
             await this.loadData();
             this.renderCV();
             this.setupToggleButton();
+            this.setupFilterButton();
         } catch (error) {
             this.showError(error.message);
         }
@@ -308,7 +309,10 @@ class NotionCV {
     }
 
     renderItem(item) {
-        let html = `<div class="cv-item">`;
+        // Determine if item has page content
+        const hasPageContent = item.pageContent && item.pageContent.trim().length > 0;
+        
+        let html = `<div class="cv-item" data-has-content="${hasPageContent}">`;
         
         // Combine icon and title
         const displayTitle = item.icon ? `${item.icon} ${item.title}` : item.title;
@@ -661,6 +665,57 @@ class NotionCV {
         
         // Initialize: Show content for items marked as always-show
         this.initializeAlwaysShowContent();
+    }
+
+    setupFilterButton() {
+        const filterBtn = document.getElementById('filter-with-content');
+        if (!filterBtn) return;
+
+        let isFiltered = false;
+
+        filterBtn.addEventListener('click', () => {
+            isFiltered = !isFiltered;
+            const allItems = document.querySelectorAll('.cv-item');
+            const allYearGroups = document.querySelectorAll('.year-group');
+            const allCategorySections = document.querySelectorAll('.category-section');
+            const filterText = filterBtn.querySelector('.toggle-text');
+            
+            if (isFiltered) {
+                // Show only items with content
+                allItems.forEach(item => {
+                    const hasContent = item.getAttribute('data-has-content') === 'true';
+                    item.style.display = hasContent ? 'block' : 'none';
+                });
+                
+                // Hide empty year groups
+                allYearGroups.forEach(yearGroup => {
+                    const visibleItems = yearGroup.querySelectorAll('.cv-item[style*="block"], .cv-item:not([style*="none"])');
+                    yearGroup.style.display = visibleItems.length > 0 ? 'block' : 'none';
+                });
+                
+                // Hide empty category sections
+                allCategorySections.forEach(categorySection => {
+                    const visibleYearGroups = categorySection.querySelectorAll('.year-group[style*="block"], .year-group:not([style*="none"])');
+                    categorySection.style.display = visibleYearGroups.length > 0 ? 'block' : 'none';
+                });
+                
+                filterText.textContent = 'Show All Items';
+                filterBtn.classList.add('filtered');
+            } else {
+                // Show all items, year groups, and category sections
+                allItems.forEach(item => {
+                    item.style.display = 'block';
+                });
+                allYearGroups.forEach(yearGroup => {
+                    yearGroup.style.display = 'block';
+                });
+                allCategorySections.forEach(categorySection => {
+                    categorySection.style.display = 'block';
+                });
+                filterText.textContent = 'Show Only Items With Content';
+                filterBtn.classList.remove('filtered');
+            }
+        });
     }
     
     initializeAlwaysShowContent() {
