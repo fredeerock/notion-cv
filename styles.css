@@ -468,8 +468,276 @@ body {
 
 /* PDF and Print Styles */
 @media print {
+    /* Hide interactive elements */
     .controls,
     .instructions {
         display: none !important;
+    }
+    
+    /* Page setup for US Letter (8.5" x 11") */
+    @page {
+        size: letter;
+        margin: 0.5in 0.6in;
+    }
+    
+    /* Clean print layout without scaling */
+    body {
+        font-size: 11pt;
+        line-height: 1.3;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .cv-container {
+        max-width: none;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* Header adjustments */
+    .cv-header {
+        margin-bottom: 14pt;
+        padding-bottom: 8pt;
+        border-bottom: 1.5pt solid #2c2c2c;
+    }
+    
+    .cv-header h1 {
+        font-size: 18pt;
+        margin-bottom: 6pt;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3pt;
+    }
+    
+    .contact-info .title {
+        font-size: 10pt;
+        margin-bottom: 4pt;
+        font-weight: 500;
+    }
+    
+    .contact-info .subtitle {
+        font-size: 9pt;
+        margin-bottom: 3pt;
+    }
+    
+    .contact-info .contact-details {
+        font-size: 8.5pt;
+    }
+    
+    .qr-code {
+        margin-top: 8pt;
+        padding-top: 8pt;
+    }
+    
+    .qr-code img {
+        width: 55pt;
+        height: 55pt;
+    }
+    
+    .qr-code small {
+        font-size: 7pt;
+        margin-top: 3pt;
+    }
+    
+    /* Category and section titles */
+    .category-title {
+        font-size: 12pt;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5pt;
+        margin: 12pt 0 8pt 0;
+        padding-bottom: 3pt;
+        border-bottom: 1.5pt solid #2c2c2c;
+    }
+    
+    .category-title.subcategory {
+        font-size: 10.5pt;
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
+        margin: 10pt 0 6pt 0;
+        padding-bottom: 2pt;
+        border-bottom: 1pt solid #666;
+    }
+    
+    .category-title.sub-subcategory {
+        font-size: 9.5pt;
+        font-weight: 500;
+        font-style: italic;
+        text-transform: none;
+        letter-spacing: 0;
+        margin: 8pt 0 5pt 0;
+        padding-bottom: 1pt;
+        border-bottom: 0.5pt dotted #999;
+    }
+    
+    .year-title {
+        font-size: 9pt;
+        font-weight: 500;
+        margin: 6pt 0 5pt 0;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.2pt;
+        padding-left: 4pt;
+        border-left: 1.5pt solid #999;
+        display: inline-block;
+    }
+    
+    /* CV Items */
+    .cv-item {
+        margin-bottom: 8pt;
+        margin-left: 8pt;
+    }
+    
+    .cv-item h3 {
+        font-size: 10pt;
+        font-weight: 600;
+        margin-bottom: 3pt;
+        line-height: 1.2;
+        color: #1a1a1a;
+    }
+    
+    .cv-item .properties {
+        margin-bottom: 4pt;
+    }
+    
+    .cv-item .property-line {
+        font-size: 8.5pt;
+        color: #666;
+        line-height: 1.3;
+        margin-bottom: 2pt;
+    }
+    
+    .cv-item .property-line strong {
+        color: #444;
+        font-weight: 500;
+        font-size: 8pt;
+    }
+    
+    .cv-item .description {
+        font-size: 9pt;
+        color: #555;
+        margin-bottom: 4pt;
+        line-height: 1.3;
+    }
+    
+    .cv-item .meta {
+        font-style: italic;
+        color: #666;
+        font-size: 8.5pt;
+    }
+    
+    /* Page content in print - respect toggle state */
+    .cv-item .page-content {
+        margin-top: 5pt;
+        padding: 6pt;
+        background: #f8f9fa;
+        border-left: 2pt solid #dee2e6;
+        font-size: 8.5pt;
+        line-height: 1.4;
+        /* Don't force display - respect current toggle state */
+    }
+    
+    /* Only expanded content shows in print */
+    .cv-item .page-content.expanded {
+        display: block !important;
+    }
+    
+    /* Hidden content stays hidden in print */
+    .cv-item .page-content:not(.expanded) {
+        display: none !important;
+    }
+    
+    /* Hide expand/collapse functionality in print */
+    .expandable-content {
+        display: block !important;
+        max-height: none !important;
+    }
+    
+    .expand-link {
+        display: none !important;
+    }
+    
+    /* Page content formatting */
+    .page-content h4, .page-content h5, .page-content h6 {
+        margin: 6pt 0 3pt 0;
+        font-weight: 600;
+        color: #2c2c2c;
+    }
+    
+    .page-content h4 {
+        font-size: 9pt;
+    }
+    
+    .page-content h5 {
+        font-size: 8.5pt;
+    }
+    
+    .page-content h6 {
+        font-size: 8pt;
+    }
+    
+    .page-content p {
+        margin: 4pt 0;
+        font-size: 8.5pt;
+        line-height: 1.3;
+    }
+    
+    .page-content ul, .page-content ol {
+        margin: 4pt 0;
+        padding-left: 10pt;
+    }
+    
+    .page-content li {
+        margin: 2pt 0;
+        font-size: 8.5pt;
+        line-height: 1.3;
+    }
+    
+    /* Ensure images and media fit well */
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    /* Remove borders and shadows from images in print */
+    .image-container img,
+    .page-content img,
+    img {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+    
+    /* Remove borders from videos too */
+    .video-container iframe,
+    .video-container video,
+    .page-content iframe,
+    .page-content video {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    /* Better table formatting for print */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 8pt;
+        margin: 4pt 0;
+    }
+    
+    table th,
+    table td {
+        padding: 2pt 4pt;
+        border: 0.5pt solid #ddd;
+        font-size: 8pt;
+        line-height: 1.2;
+    }
+    
+    table th {
+        font-weight: 600;
+        background-color: #f8f9fa;
     }
 }

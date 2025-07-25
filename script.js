@@ -279,7 +279,7 @@ class NotionCV {
         let description = '';
         
         // Define properties to skip (internal/display properties or already shown)
-        const skipProperties = ['id', 'title', 'icon', 'hasContent', 'pageContent', 'category', 'showLocation?', 'show Location?', 'relatedItem', 'dateProperty', 'statusProperty', 'files&Media', 'files & media'];
+        const skipProperties = ['id', 'title', 'icon', 'hasContent', 'pageContent', 'category', 'showLocation?', 'show Location?', 'showPageContents', 'relatedItem', 'dateProperty', 'statusProperty', 'files&Media', 'files & media'];
         
         // Check all properties in the item and add non-empty ones
         Object.keys(item).forEach(key => {
@@ -345,7 +345,10 @@ class NotionCV {
         // Add page content if available
         if (item.pageContent && item.pageContent.trim().length > 0) {
             const processedContent = this.processPageContent(item.pageContent);
-            html += `<div class="page-content" data-item-id="${item.id}">${processedContent}</div>`;
+            // Check if this item should always show content (showPageContents checkbox)
+            const alwaysShow = item.showPageContents === true;
+            const showContentClass = alwaysShow ? 'page-content always-show' : 'page-content';
+            html += `<div class="${showContentClass}" data-item-id="${item.id}" data-always-show="${alwaysShow}">${processedContent}</div>`;
         }
         
         html += `</div>`;
@@ -584,10 +587,19 @@ class NotionCV {
             const toggleText = toggleBtn.querySelector('.toggle-text');
             
             pageContents.forEach(content => {
-                if (isExpanded) {
+                // Check if this content should always be shown
+                const alwaysShow = content.getAttribute('data-always-show') === 'true';
+                
+                if (alwaysShow) {
+                    // Always keep expanded if marked to always show
                     content.classList.add('expanded');
                 } else {
-                    content.classList.remove('expanded');
+                    // Normal toggle behavior for other items
+                    if (isExpanded) {
+                        content.classList.add('expanded');
+                    } else {
+                        content.classList.remove('expanded');
+                    }
                 }
             });
 
@@ -598,6 +610,16 @@ class NotionCV {
                 toggleText.textContent = 'Show All Page Contents';
                 toggleBtn.classList.remove('expanded');
             }
+        });
+        
+        // Initialize: Show content for items marked as always-show
+        this.initializeAlwaysShowContent();
+    }
+    
+    initializeAlwaysShowContent() {
+        const alwaysShowContents = document.querySelectorAll('.page-content[data-always-show="true"]');
+        alwaysShowContents.forEach(content => {
+            content.classList.add('expanded');
         });
     }
 }
