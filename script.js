@@ -117,6 +117,35 @@ function generateQRCode() {
     }
 }
 
+// Function to sort semesters chronologically
+function sortSemesters(a, b) {
+    // Parse semester strings like "2022 Spring", "2025 Summer", etc.
+    const parseSemester = (semesterStr) => {
+        if (!semesterStr) return { year: 0, season: 0 };
+        
+        const parts = semesterStr.split(' ');
+        const year = parseInt(parts[0]) || 0;
+        const season = parts[1] || '';
+        
+        // Define season order: Spring, Summer, Fall
+        const seasonOrder = { 'Spring': 1, 'Summer': 2, 'Fall': 3 };
+        
+        return {
+            year: year,
+            season: seasonOrder[season] || 0
+        };
+    };
+    
+    const semA = parseSemester(a);
+    const semB = parseSemester(b);
+    
+    // Sort by year first (descending), then by season (descending within year)
+    if (semA.year !== semB.year) {
+        return semB.year - semA.year;
+    }
+    return semB.season - semA.season;
+}
+
 class NotionCV {
     constructor() {
         this.cvData = [];
@@ -196,14 +225,25 @@ class NotionCV {
                     organized[category] = {};
                 }
                 
-                // Use 'no-date' as internal key for items without dates
-                const yearKey = year || 'no-date';
-                
-                if (!organized[category][yearKey]) {
-                    organized[category][yearKey] = [];
+                // Special handling for teaching history - organize by semester instead of year
+                if (category === "2.01 Teaching History & Student Evaluations" && item.semester) {
+                    const semesterKey = item.semester;
+                    
+                    if (!organized[category][semesterKey]) {
+                        organized[category][semesterKey] = [];
+                    }
+                    
+                    organized[category][semesterKey].push(item);
+                } else {
+                    // Default behavior - organize by year
+                    const yearKey = year || 'no-date';
+                    
+                    if (!organized[category][yearKey]) {
+                        organized[category][yearKey] = [];
+                    }
+                    
+                    organized[category][yearKey].push(item);
                 }
-                
-                organized[category][yearKey].push(item);
             });
         });
 
@@ -230,23 +270,30 @@ class NotionCV {
             const categoryClass = this.getCategoryClass(category);
             html += `<h2 class="category-title ${categoryClass}">${category}</h2>`;
             
-            // Sort years within each category (descending, with no-date items first)
-            const sortedYears = Object.keys(organizedData[category]).sort((a, b) => {
-                if (a === 'no-date') return -1; // Put no-date items at the top
-                if (b === 'no-date') return 1;
-                return parseInt(b) - parseInt(a);
-            });
+            // Sort years/semesters within each category
+            let sortedKeys;
+            if (category === "2.01 Teaching History & Student Evaluations") {
+                // Sort semesters chronologically for teaching history
+                sortedKeys = Object.keys(organizedData[category]).sort(sortSemesters);
+            } else {
+                // Default sorting by year (descending, with no-date items first)
+                sortedKeys = Object.keys(organizedData[category]).sort((a, b) => {
+                    if (a === 'no-date') return -1; // Put no-date items at the top
+                    if (b === 'no-date') return 1;
+                    return parseInt(b) - parseInt(a);
+                });
+            }
             
-            sortedYears.forEach(year => {
-                if (organizedData[category][year].length > 0) {
+            sortedKeys.forEach(key => {
+                if (organizedData[category][key].length > 0) {
                     html += `<div class="year-group">`;
                     
-                    // Only show year title if there's an actual year
-                    if (year !== 'no-date') {
-                        html += `<h3 class="year-title">${year}</h3>`;
+                    // Only show year/semester title if there's an actual key (not 'no-date')
+                    if (key !== 'no-date') {
+                        html += `<h3 class="year-title">${key}</h3>`;
                     }
                     
-                    organizedData[category][year].forEach(item => {
+                    organizedData[category][key].forEach(item => {
                         html += this.renderItem(item);
                     });
                     
