@@ -566,6 +566,11 @@ body {
         border-bottom: 1.5pt solid #2c2c2c;
     }
     
+    /* Force page breaks before each category section (except the first one) */
+    .category-section:not(:first-child) .category-title {
+        page-break-before: always !important;
+    }
+    
     .category-title.subcategory {
         font-size: 10.5pt;
         font-weight: 500;
